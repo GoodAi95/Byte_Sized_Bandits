@@ -132,6 +132,7 @@ export interface Nudge {
   id: string;
   circleId: string;
   fromUserId: string;
+  anonymous?: boolean;
   toUserId: string;
   message: string;
   read: boolean;

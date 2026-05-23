@@ -18,6 +18,7 @@ export default function Dashboard() {
   const [simResult, setSimResult] = useState<{ newScore: number; change: number; explanation: string } | null>(null);
   const [simulationHistory, setSimulationHistory] = useState<Array<{ action: string; newScore: number; change: number; explanation: string }>>([]);
   const [circleNudgeMessages, setCircleNudgeMessages] = useState<Record<string, string>>({});
+  const [circleNudgeAnon, setCircleNudgeAnon] = useState<Record<string, boolean>>({});
   const [nudgeStatus, setNudgeStatus] = useState('');
 
   if (!profile || !currentUser) return null;
@@ -38,11 +39,12 @@ export default function Dashboard() {
   const avgScoreColor = avgCircleScore >= 740 ? '#22C55E' : avgCircleScore >= 670 ? '#F59E0B' : avgCircleScore >= 580 ? '#F97316' : '#EF4444';
   const avgScoreText = avgCircleScore >= 740 ? 'Excellent' : avgCircleScore >= 670 ? 'Good' : avgCircleScore >= 580 ? 'Fair' : 'Poor';
 
-  const handleCircleNudge = (memberId: string) => {
+  const handleCircleNudge = (memberId: string, anonymous = false) => {
     if (!activeCircle) return;
     const message = circleNudgeMessages[memberId] || `Reminder: stay focused on your circle goal.`;
-    sendNudge(activeCircle.id, memberId, message);
+    sendNudge(activeCircle.id, memberId, message, anonymous);
     setCircleNudgeMessages(prev => ({ ...prev, [memberId]: '' }));
+    setCircleNudgeAnon(prev => ({ ...prev, [memberId]: false }));
     setNudgeStatus(`Nudge sent to ${circleMembers.find(m => m.id === memberId)?.fullName || 'member'}`);
     window.setTimeout(() => setNudgeStatus(''), 3000);
   };
@@ -170,7 +172,7 @@ export default function Dashboard() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
             <div className="rounded-3xl bg-slate-50 p-4 text-center">
               <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Reported</p>
               <p className="mt-2 text-2xl font-semibold text-gray-900">{profile.currentCreditScore}</p>
@@ -178,10 +180,6 @@ export default function Dashboard() {
             <div className="rounded-3xl bg-slate-50 p-4 text-center">
               <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Prediction</p>
               <p className="mt-2 text-2xl font-semibold" style={{ color: scoreColor }}>{prediction.predictedScore}</p>
-            </div>
-            <div className="rounded-3xl bg-slate-50 p-4 text-center">
-              <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Confidence</p>
-              <p className="mt-2 text-2xl font-semibold text-gray-900">{historyData.length > 1 ? `${Math.min(100, Math.round((prediction.predictedScore / 850) * 100))}%` : 'Fresh'}</p>
             </div>
           </div>
 
@@ -353,7 +351,13 @@ export default function Dashboard() {
                       <p className="text-sm font-semibold text-gray-900 truncate">{member.fullName}</p>
                       <p className="text-xs text-gray-500">{member.avatarColor}</p>
                     </div>
-                    <button type="button" onClick={() => handleCircleNudge(member.id)} className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100 transition-colors"><Bell className="w-4 h-4" /> Nudge</button>
+                    <div className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 text-xs text-gray-500">
+                        <input type="checkbox" checked={!!circleNudgeAnon[member.id]} onChange={e => setCircleNudgeAnon(prev => ({ ...prev, [member.id]: e.target.checked }))} className="w-4 h-4" />
+                        <span>Anon</span>
+                      </label>
+                      <button type="button" onClick={() => handleCircleNudge(member.id, !!circleNudgeAnon[member.id])} className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100 transition-colors"><Bell className="w-4 h-4" /> Nudge</button>
+                    </div>
                   </div>
                 ))}
               </div>

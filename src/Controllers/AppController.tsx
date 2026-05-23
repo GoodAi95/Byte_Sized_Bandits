@@ -57,7 +57,7 @@ interface AppContextType extends AppState {
   likePost: (postId: string) => void;
   addCircleGoal: (circleId: string, title: string, targetAmount: number, deadline: string) => void;
   contributeToCircleGoal: (circleId: string, goalId: string, amount: number) => void;
-  sendNudge: (circleId: string, toUserId: string, message: string) => void;
+  sendNudge: (circleId: string, toUserId: string, message: string, anonymous?: boolean) => void;
   markNudgeRead: (nudgeId: string) => void;
   // Fraud
   addFraudScan: (scan: FraudScanResult) => void;
@@ -414,13 +414,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  const sendNudge = useCallback((circleId: string, toUserId: string, message: string) => {
+  const sendNudge = useCallback((circleId: string, toUserId: string, message: string, anonymous = false) => {
     setState(prev => {
       if (!prev.currentUser) return prev;
       const nudge: Nudge = {
         id: generateId(),
         circleId,
-        fromUserId: prev.currentUser.id,
+        fromUserId: anonymous ? 'ANONYMOUS' : prev.currentUser.id,
+        anonymous: anonymous || undefined,
         toUserId,
         message,
         read: false,

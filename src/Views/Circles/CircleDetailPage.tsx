@@ -18,6 +18,7 @@ export default function CircleDetailPage() {
   const [contributeGoalId, setContributeGoalId] = useState<string | null>(null);
   const [contributeAmount, setContributeAmount] = useState('');
   const [nudgeMsg, setNudgeMsg] = useState<Record<string, string>>({});
+  const [nudgeAnon, setNudgeAnon] = useState<Record<string, boolean>>({});
 
   if (!circle || !currentUser) return (<div className="p-8 text-center"><p className="text-gray-500">Circle not found</p><button onClick={() => navigate('circles')} className="mt-4 text-emerald-600 font-semibold">← Back to Circles</button></div>);
 
@@ -30,7 +31,7 @@ export default function CircleDetailPage() {
   const handlePost = (e: React.FormEvent) => { e.preventDefault(); if (!postContent.trim()) return; addCirclePost(circle.id, postContent, postType); setPostContent(''); };
   const handleAddGoal = (e: React.FormEvent) => { e.preventDefault(); if (!goalTitle || !goalTarget) return; addCircleGoal(circle.id, goalTitle, parseFloat(goalTarget), goalDeadline || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]); setGoalTitle(''); setGoalTarget(''); setGoalDeadline(''); setShowGoalForm(false); };
   const handleContributeGoal = (goalId: string) => { if (!contributeAmount || parseFloat(contributeAmount) <= 0) return; contributeToCircleGoal(circle.id, goalId, parseFloat(contributeAmount)); setContributeGoalId(null); setContributeAmount(''); };
-  const handleNudge = (userId: string) => { const msg = nudgeMsg[userId] || 'Hey! Don\'t forget to log your expenses and check your score! 💪'; sendNudge(circle.id, userId, msg); setNudgeMsg(prev => ({ ...prev, [userId]: '' })); };
+  const handleNudge = (userId: string, anonymous = false) => { const msg = nudgeMsg[userId] || 'Hey! Don\'t forget to log your expenses and check your score! 💪'; sendNudge(circle.id, userId, msg, anonymous); setNudgeMsg(prev => ({ ...prev, [userId]: '' })); setNudgeAnon(prev => ({ ...prev, [userId]: false })); };
 
   const healthScore = circle.goals.length > 0 ? Math.round(circle.goals.reduce((s, g) => s + Math.min(100, (g.currentAmount / g.targetAmount) * 100), 0) / circle.goals.length) : (avgScore > 0 ? Math.round(((avgScore - 300) / 550) * 100) : 50);
 
@@ -117,7 +118,16 @@ export default function CircleDetailPage() {
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style={{ backgroundColor: member.avatarColor }}>{member.fullName.charAt(0)}</div>
                 <div className="flex-1"><p className="text-sm font-semibold text-gray-900">{member.fullName} {isCurrentUser && <span className="text-xs text-emerald-500">(You)</span>}</p>{memberScore && (<p className="text-xs text-gray-500">Score: <span className="font-semibold text-emerald-600">{memberScore}</span></p>)}</div>
-                {!isCurrentUser && (<div className="flex items-center gap-2"><input type="text" value={nudgeMsg[member.id] || ''} onChange={e => setNudgeMsg(prev => ({ ...prev, [member.id]: e.target.value }))} className="w-40 px-3 py-1.5 border rounded-lg text-xs hidden sm:block text-gray-900" placeholder="Send a nudge..." /><button onClick={() => handleNudge(member.id)} className="p-2 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors" title="Send nudge"><Bell className="w-4 h-4" /></button></div>)}
+                {!isCurrentUser && (
+                  <div className="flex items-center gap-2">
+                    <input type="text" value={nudgeMsg[member.id] || ''} onChange={e => setNudgeMsg(prev => ({ ...prev, [member.id]: e.target.value }))} className="w-40 px-3 py-1.5 border rounded-lg text-xs hidden sm:block text-gray-900" placeholder="Send a nudge..." />
+                    <label className="flex items-center gap-2 text-xs text-gray-500">
+                      <input type="checkbox" checked={!!nudgeAnon[member.id]} onChange={e => setNudgeAnon(prev => ({ ...prev, [member.id]: e.target.checked }))} className="w-4 h-4" />
+                      <span>Anonymous</span>
+                    </label>
+                    <button onClick={() => handleNudge(member.id, !!nudgeAnon[member.id])} className="p-2 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors" title="Send nudge"><Bell className="w-4 h-4" /></button>
+                  </div>
+                )}
               </div>
             </div>
           );

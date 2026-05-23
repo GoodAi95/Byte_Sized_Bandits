@@ -209,11 +209,24 @@ export function predictCreditScore(profile: FinancialProfile): PredictionResult 
 // Simulate what happens if user takes an action
 export function simulateAction(
   profile: FinancialProfile,
-  action: string
+  action: string,
+  customAmount?: number,
+  customPercentage?: number
 ): { newScore: number; change: number; explanation: string } {
   const modifiedProfile = { ...profile };
 
   switch (action) {
+    // ─── Debt Management ────────────────────────────────────────────────
+    case 'pay_debt_custom': {
+      const amount = customAmount || 500;
+      modifiedProfile.totalDebt = Math.max(0, profile.totalDebt - amount);
+      // Adjust credit utilization proportionally
+      const utilReduction = profile.totalDebt > 0 
+        ? (amount / profile.totalDebt) * profile.creditUtilization 
+        : 0;
+      modifiedProfile.creditUtilization = Math.max(0, profile.creditUtilization - utilReduction);
+      break;
+    }
     case 'pay_debt_500':
       modifiedProfile.totalDebt = Math.max(0, profile.totalDebt - 500);
       modifiedProfile.creditUtilization = Math.max(0, profile.creditUtilization - 3);
@@ -222,29 +235,143 @@ export function simulateAction(
       modifiedProfile.totalDebt = Math.max(0, profile.totalDebt - 1000);
       modifiedProfile.creditUtilization = Math.max(0, profile.creditUtilization - 5);
       break;
-    case 'miss_payment':
-      modifiedProfile.missedPayments += 1;
+
+    // ─── Savings Management ─────────────────────────────────────────────
+    case 'increase_savings_custom': {
+      const amount = customAmount || 500;
+      modifiedProfile.totalSavings += amount;
       break;
+    }
+    case 'increase_savings_500':
+      modifiedProfile.totalSavings += 500;
+      break;
+
+    // ─── Credit Utilization Management ──────────────────────────────────
+    case 'reduce_utilization_custom': {
+      const percentage = customPercentage || 10;
+      modifiedProfile.creditUtilization = Math.max(0, profile.creditUtilization - percentage);
+      break;
+    }
+    case 'reduce_utilization':
+      modifiedProfile.creditUtilization = Math.max(0, profile.creditUtilization - 10);
+      break;
+
+    // ─── Income Management ──────────────────────────────────────────────
+    case 'increase_income_custom': {
+      const amount = customAmount || 2000;
+      modifiedProfile.monthlyIncome += amount;
+      break;
+    }
+    case 'increase_income_5k':
+      modifiedProfile.monthlyIncome += 5000;
+      break;
+
+    // ─── Monthly Rent Adjustment ────────────────────────────────────────
+    case 'adjust_rent_custom': {
+      const amount = customAmount || 0;
+      modifiedProfile.monthlyRent = Math.max(0, profile.monthlyRent + amount);
+      break;
+    }
+
+    // ─── Payment History (Hard Inquiry / Account Aging) ─────────────────
+    case 'miss_payment_single':
+      modifiedProfile.missedPayments = Math.min(profile.missedPayments + 1, 6);
+      break;
+    case 'miss_payment_multiple': {
+      const count = customAmount || 2;
+      modifiedProfile.missedPayments = Math.min(profile.missedPayments + count, 6);
+      break;
+    }
+    case 'cure_missed_payments': {
+      const count = customAmount || 1;
+      modifiedProfile.missedPayments = Math.max(0, profile.missedPayments - count);
+      break;
+    }
+
+    // ─── Credit Card Management ────────────────────────────────────────
     case 'new_credit_card':
       modifiedProfile.numberOfCreditCards += 1;
       modifiedProfile.ageOfCreditHistory = Math.max(0, profile.ageOfCreditHistory - 0.5);
       break;
+    case 'new_credit_card_custom': {
+      const count = customAmount || 1;
+      modifiedProfile.numberOfCreditCards += count;
+      // Each hard inquiry reduces age slightly
+      modifiedProfile.ageOfCreditHistory = Math.max(0, profile.ageOfCreditHistory - (count * 0.3));
+      break;
+    }
+
+    // ─── Loan Management ────────────────────────────────────────────────
     case 'new_loan':
       modifiedProfile.numberOfLoans += 1;
       modifiedProfile.totalDebt += 5000;
       break;
-    case 'increase_savings_500':
-      modifiedProfile.totalSavings += 500;
+    case 'new_loan_custom': {
+      const amount = customAmount || 5000;
+      modifiedProfile.numberOfLoans += 1;
+      modifiedProfile.totalDebt += amount;
       break;
+    }
+    case 'pay_off_loan': {
+      if (modifiedProfile.numberOfLoans > 0) {
+        modifiedProfile.numberOfLoans -= 1;
+      }
+      break;
+    }
+
+    // ─── Credit History Management ──────────────────────────────────────
+    case 'age_credit_history_years': {
+      const years = customAmount || 1;
+      modifiedProfile.ageOfCreditHistory = Math.max(0, profile.ageOfCreditHistory + years);
+      break;
+    }
+
+    // ─── Investment & Gambling Management ────────────────────────────────
     case 'start_investing':
       modifiedProfile.hasInvestments = true;
       break;
     case 'reduce_gambling':
       modifiedProfile.gambling = profile.gambling === 'High' ? 'Low' : 'No';
       break;
-    case 'reduce_utilization':
-      modifiedProfile.creditUtilization = Math.max(0, profile.creditUtilization - 10);
+    case 'reduce_gambling_custom': {
+      const level = customAmount || 1; // 0=No, 1=Low, 2=High
+      if (level === 2) modifiedProfile.gambling = 'Low';
+      else if (level === 1) modifiedProfile.gambling = 'No';
       break;
+    }
+    case 'increase_gambling':
+      modifiedProfile.gambling = profile.gambling === 'No' ? 'Low' : 'High';
+      break;
+
+    // ─── Mortgage Management ────────────────────────────────────────────
+    case 'get_mortgage':
+      if (!modifiedProfile.hasMortgage) {
+        modifiedProfile.hasMortgage = true;
+        modifiedProfile.numberOfLoans += 1;
+        modifiedProfile.totalDebt += 500000; // Typical mortgage
+      }
+      break;
+    case 'pay_off_mortgage':
+      if (modifiedProfile.hasMortgage) {
+        modifiedProfile.hasMortgage = false;
+        modifiedProfile.numberOfLoans = Math.max(0, modifiedProfile.numberOfLoans - 1);
+        modifiedProfile.totalDebt = Math.max(0, modifiedProfile.totalDebt - 500000);
+      }
+      break;
+
+    // ─── Employment Status ──────────────────────────────────────────────
+    case 'change_employment_custom': {
+      const statuses: Array<'Employed' | 'Self-Employed' | 'Unemployed' | 'Retired'> = ['Employed', 'Self-Employed', 'Unemployed', 'Retired'];
+      const currentIdx = statuses.indexOf(profile.employmentStatus);
+      const newStatus = statuses[(currentIdx + 1) % statuses.length];
+      modifiedProfile.employmentStatus = newStatus;
+      break;
+    }
+
+    case 'miss_payment':
+      modifiedProfile.missedPayments += 1;
+      break;
+
     default:
       break;
   }
@@ -254,15 +381,60 @@ export function simulateAction(
   const change = newResult.predictedScore - currentResult.predictedScore;
 
   const actionLabels: Record<string, string> = {
+    // Debt
+    pay_debt_custom: `Paying off R${customAmount || 500} in debt`,
     pay_debt_500: 'Paying off R500 in debt',
     pay_debt_1000: 'Paying off R1,000 in debt',
-    miss_payment: 'Missing a payment',
-    new_credit_card: 'Opening a new credit card',
-    new_loan: 'Taking out a new loan (R5,000)',
+    
+    // Savings
+    increase_savings_custom: `Adding R${customAmount || 500} to savings`,
     increase_savings_500: 'Adding R500 to savings',
+    
+    // Utilization
+    reduce_utilization_custom: `Reducing credit utilization by ${customPercentage || 10}%`,
+    reduce_utilization: 'Reducing credit utilization by 10%',
+    
+    // Income
+    increase_income_custom: `Increasing income by R${customAmount || 2000}/month`,
+    increase_income_5k: 'Increasing income by R5,000/month',
+    
+    // Rent
+    adjust_rent_custom: `Adjusting monthly rent by R${customAmount || 0}`,
+    
+    // Payments
+    miss_payment_single: 'Missing one payment',
+    miss_payment_multiple: `Missing ${customAmount || 2} payments`,
+    cure_missed_payments: `Curing ${customAmount || 1} missed payment(s)`,
+    miss_payment: 'Missing a payment',
+    
+    // Cards
+    new_credit_card: 'Opening a new credit card',
+    new_credit_card_custom: `Opening ${customAmount || 1} new credit card(s)`,
+    
+    // Loans
+    new_loan: 'Taking out a new R5,000 loan',
+    new_loan_custom: `Taking out a R${customAmount || 5000} loan`,
+    pay_off_loan: 'Paying off one loan entirely',
+    
+    // History
+    age_credit_history_years: `Aging credit history by ${customAmount || 1} year(s)`,
+    
+    // Investments & Gambling
     start_investing: 'Starting an investment portfolio',
     reduce_gambling: 'Reducing gambling activity',
-    reduce_utilization: 'Reducing credit utilization by 10%',
+    reduce_gambling_custom: `Reducing gambling activity to ${customAmount === 1 ? 'Low' : 'None'}`,
+    increase_gambling: 'Increasing gambling activity',
+    
+    // Mortgage
+    get_mortgage: 'Getting a R500k mortgage',
+    pay_off_mortgage: 'Paying off mortgage entirely',
+    
+    // Employment
+    change_employment_custom: `Changing employment status to ${
+      ['Employed', 'Self-Employed', 'Unemployed', 'Retired'][
+        ((['Employed', 'Self-Employed', 'Unemployed', 'Retired'].indexOf(profile.employmentStatus) + 1) % 4)
+      ]
+    }`,
   };
 
   return {

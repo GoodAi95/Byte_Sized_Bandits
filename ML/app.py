@@ -74,6 +74,8 @@ class CreditScoreResponse(BaseModel):
 class ActionSimulationRequest(BaseModel):
     profile: FinancialProfileRequest
     action: str
+    custom_amount: Optional[float] = None
+    custom_percentage: Optional[float] = None
 
 
 class ActionSimulationResponse(BaseModel):
@@ -357,6 +359,7 @@ async def predict_score(profile: FinancialProfileRequest):
 async def simulate_action(request: ActionSimulationRequest):
     """
     Simulate the impact of a financial action on credit score.
+    Supports custom amounts and percentages for more accurate predictions.
     """
     try:
         # Get current score
@@ -365,34 +368,66 @@ async def simulate_action(request: ActionSimulationRequest):
         
         # Modify profile based on action
         modified = request.profile.model_copy()
-        action_labels = {
-            'pay_debt_500': 'Paying off R500 in debt',
-            'pay_debt_1000': 'Paying off R1,000 in debt',
-            'miss_payment': 'Missing a payment',
-            'new_credit_card': 'Opening a new credit card',
-            'new_loan': 'Taking out a new loan (R5,000)',
-            'increase_savings_500': 'Adding R500 to savings',
-            'start_investing': 'Starting an investment portfolio',
-            'reduce_gambling': 'Reducing gambling activity',
-            'reduce_utilization': 'Reducing credit utilization by 10%',
-        }
         
-        if request.action == 'pay_debt_500':
+        # Enhanced action handling with custom amounts
+        custom_amount = request.custom_amount or 500
+        custom_pct = request.custom_percentage or 10
+        
+        if request.action == 'pay_debt_custom':
+            amount = request.custom_amount or 500
+            modified.total_debt = max(0, modified.total_debt - amount)
+            util_reduction = (amount / modified.total_debt) * modified.credit_utilization if modified.total_debt > 0 else 0
+            modified.credit_utilization = max(0, modified.credit_utilization - util_reduction)
+        elif request.action == 'pay_debt_500':
             modified.total_debt = max(0, modified.total_debt - 500)
             modified.credit_utilization = max(0, modified.credit_utilization - 3)
         elif request.action == 'pay_debt_1000':
             modified.total_debt = max(0, modified.total_debt - 1000)
             modified.credit_utilization = max(0, modified.credit_utilization - 5)
+        elif request.action == 'increase_savings_custom':
+            modified.total_savings += request.custom_amount or 500
+        elif request.action == 'increase_savings_500':
+            modified.total_savings += 500
+        elif request.action == 'reduce_utilization_custom':
+            modified.credit_utilization = max(0, modified.credit_utilization - (request.custom_percentage or 10))
+        elif request.action == 'reduce_utilization':
+            modified.credit_utilization = max(0, modified.credit_utilization - 10)
+        elif request.action == 'increase_income_custom':
+            modified.monthly_income += request.custom_amount or 2000
+        elif request.action == 'increase_income_5k':
+            modified.monthly_income += 5000
+        elif request.action == 'adjust_rent_custom':
+            modified.monthly_rent = max(0, modified.monthly_rent + (request.custom_amount or 0))
+        elif request.action == 'miss_payment_single':
+            modified.missed_payments = min(modified.missed_payments + 1, 6)
+        elif request.action == 'miss_payment_multiple':
+            count = int(request.custom_amount or 2)
+            modified.missed_payments = min(modified.missed_payments + count, 6)
+        elif request.action == 'cure_missed_payments':
+            count = int(request.custom_amount or 1)
+            modified.missed_payments = max(0, modified.missed_payments - count)
         elif request.action == 'miss_payment':
             modified.missed_payments += 1
+        elif request.action == 'new_credit_card_custom':
+            count = int(request.custom_amount or 1)
+            modified.number_of_credit_cards += count
+            modified.age_of_credit_history = max(0, modified.age_of_credit_history - (count * 0.3))
         elif request.action == 'new_credit_card':
             modified.number_of_credit_cards += 1
             modified.age_of_credit_history = max(0, modified.age_of_credit_history - 0.5)
+        elif request.action == 'new_loan_custom':
+            amount = request.custom_amount or 5000
+            modified.number_of_loans += 1
+            modified.total_debt += amount
         elif request.action == 'new_loan':
             modified.number_of_loans += 1
             modified.total_debt += 5000
-        elif request.action == 'increase_savings_500':
-            modified.total_savings += 500
+        elif request.action == 'pay_off_loan':
+            if modified.number_of_loans > 0:
+                modified.number_of_loans -= 1
+        elif request.action == 'age_credit_history_years':
+            years = request.custom_amount or 1
+            modified.age_of_credit_history = max(0, modified.age_of_credit_history + years)
         elif request.action == 'start_investing':
             modified.has_investments = True
         elif request.action == 'reduce_gambling':
@@ -400,15 +435,49 @@ async def simulate_action(request: ActionSimulationRequest):
                 modified.gambling = 'Low'
             elif modified.gambling == 'Low':
                 modified.gambling = 'No'
-        elif request.action == 'reduce_utilization':
-            modified.credit_utilization = max(0, modified.credit_utilization - 10)
+        elif request.action == 'reduce_gambling_custom':
+            level = int(request.custom_amount or 1)
+            if level == 2:
+                modified.gambling = 'Low'
+            elif level == 1:
+                modified.gambling = 'No'
+        elif request.action == 'increase_gambling':
+            if modified.gambling == 'No':
+                modified.gambling = 'Low'
+            else:
+                modified.gambling = 'High'
+        elif request.action == 'get_mortgage':
+            if not modified.has_mortgage:
+                modified.has_mortgage = True
+                modified.number_of_loans += 1
+                modified.total_debt += 500000
+        elif request.action == 'pay_off_mortgage':
+            if modified.has_mortgage:
+                modified.has_mortgage = False
+                modified.number_of_loans = max(0, modified.number_of_loans - 1)
+                modified.total_debt = max(0, modified.total_debt - 500000)
+        elif request.action == 'change_employment_custom':
+            statuses = ['Employed', 'Self-Employed', 'Unemployed', 'Retired']
+            current_idx = statuses.index(modified.employment_status)
+            modified.employment_status = statuses[(current_idx + 1) % len(statuses)]
         
         # Get new score
         new_result = predict_credit_score(modified)
         new_score = new_result.predicted_score
         change = new_score - current_score
         
-        action_label = action_labels.get(request.action, request.action)
+        # Generate label based on action
+        action_label = request.action
+        if 'custom' in request.action:
+            if 'amount' in request.action and 'debt' in request.action:
+                action_label = f'Paying off R{request.custom_amount or 500} in debt'
+            elif 'amount' in request.action and 'saving' in request.action:
+                action_label = f'Adding R{request.custom_amount or 500} to savings'
+            elif 'percentage' in request.action and 'util' in request.action:
+                action_label = f'Reducing credit utilization by {request.custom_percentage or 10}%'
+            elif 'income' in request.action:
+                action_label = f'Increasing income by R{request.custom_amount or 2000}/month'
+        
         direction = 'increase' if change >= 0 else 'decrease'
         
         return ActionSimulationResponse(

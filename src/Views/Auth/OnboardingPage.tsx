@@ -150,7 +150,7 @@ export default function OnboardingPage() {
                 {(['No', 'Low', 'High'] as const).map(val => (
                   <button key={val} type="button" onClick={() => update('gambling', val)}
                     className={`py-3 rounded-xl border-2 font-semibold transition-all ${form.gambling === val ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
-                    {val === 'No' ? '🚫 None' : val === 'Low' ? '🎲 Low' : '🎰 High'}
+                    {val}
                   </button>
                 ))}
               </div>
@@ -160,7 +160,7 @@ export default function OnboardingPage() {
                 <input type="checkbox" checked={form.hasInvestments} onChange={e => update('hasInvestments', e.target.checked)}
                   className="w-5 h-5 text-emerald-600 accent-emerald-600 rounded" />
                 <div>
-                  <span className="font-semibold text-gray-800">📈 I have investments</span>
+                  <span className="font-semibold text-gray-800">I have investments</span>
                   <p className="text-sm text-gray-500">Stocks, bonds, retirement accounts, etc.</p>
                 </div>
               </label>
@@ -168,7 +168,7 @@ export default function OnboardingPage() {
                 <input type="checkbox" checked={form.hasMortgage} onChange={e => update('hasMortgage', e.target.checked)}
                   className="w-5 h-5 text-emerald-600 accent-emerald-600 rounded" />
                 <div>
-                  <span className="font-semibold text-gray-800">🏠 I have a mortgage</span>
+                  <span className="font-semibold text-gray-800">I have a mortgage</span>
                   <p className="text-sm text-gray-500">Active home loan payments</p>
                 </div>
               </label>

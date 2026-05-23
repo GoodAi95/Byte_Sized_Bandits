@@ -58,13 +58,13 @@ export default function CircleDetailPage() {
       {tab === 'feed' && (
         <div>
           <form onSubmit={handlePost} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm mb-4">
-            <div className="flex gap-3 mb-3">{(['update', 'win', 'advice'] as const).map(t => (<button key={t} type="button" onClick={() => setPostType(t)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${postType === t ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>{t === 'win' ? '🏆 Win' : t === 'advice' ? '💡 Advice' : '📢 Update'}</button>))}</div>
+            <div className="flex gap-3 mb-3">{(['update', 'win', 'advice'] as const).map(t => (<button key={t} type="button" onClick={() => setPostType(t)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${postType === t ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>{t === 'win' ? 'Win' : t === 'advice' ? 'Advice' : 'Update'}</button>))}</div>
             <div className="flex gap-2"><input type="text" value={postContent} onChange={e => setPostContent(e.target.value)} className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 text-sm text-gray-900" placeholder="Share with your circle..." /><button type="submit" className="p-2.5 rounded-xl text-white" style={{ background: '#2D6A4F' }}><Send className="w-4 h-4" /></button></div>
           </form>
           {posts.length === 0 ? (<div className="text-center py-12 text-gray-400"><MessageSquare className="w-10 h-10 mx-auto mb-2 opacity-30" /><p>No posts yet. Be the first to share!</p></div>) : (
             <div className="space-y-3">{posts.map((post: CirclePost) => (
               <div key={post.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-                <div className="flex items-center gap-3 mb-2"><div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-sm font-bold text-emerald-700">{post.userName.charAt(0)}</div><div><p className="text-sm font-semibold text-gray-900">{post.userName}</p><p className="text-xs text-gray-400">{new Date(post.createdAt).toLocaleDateString('en-ZA')} • {post.type === 'win' ? '🏆' : post.type === 'advice' ? '💡' : '📢'} {post.type}</p></div></div>
+                <div className="flex items-center gap-3 mb-2"><div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-sm font-bold text-emerald-700">{post.userName.charAt(0)}</div><div><p className="text-sm font-semibold text-gray-900">{post.userName}</p><p className="text-xs text-gray-400">{new Date(post.createdAt).toLocaleDateString('en-ZA')} • {post.type}</p></div></div>
                 <p className="text-sm text-gray-700 mb-3">{post.content}</p>
                 <button onClick={() => likePost(post.id)} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-500 transition-colors"><Heart className={`w-4 h-4 ${post.likes.includes(currentUser.id) ? 'fill-red-500 text-red-500' : ''}`} />{post.likes.length > 0 && post.likes.length}</button>
               </div>

@@ -1,12 +1,14 @@
 import { Gift, CreditCard, Store, Percent } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faShoppingBag, faUtensils, faGasPump, faFilm, faCartShopping, faMusic } from '@fortawesome/free-solid-svg-icons';
 
 const placeholderRewards = [
-  { merchant: 'Takealot', percent: '5%', category: 'Shopping', icon: '🛒' },
-  { merchant: 'Uber Eats', percent: '3%', category: 'Food', icon: '🍔' },
-  { merchant: 'Engen', percent: '4%', category: 'Transportation', icon: '⛽' },
-  { merchant: 'Showmax', percent: '2%', category: 'Entertainment', icon: '🎬' },
-  { merchant: 'Checkers', percent: '3%', category: 'Shopping', icon: '🏪' },
-  { merchant: 'Spotify', percent: '2%', category: 'Entertainment', icon: '🎵' },
+  { merchant: 'Takealot', percent: '5%', category: 'Shopping', icon: faShoppingBag },
+  { merchant: 'Uber Eats', percent: '3%', category: 'Food', icon: faUtensils },
+  { merchant: 'Engen', percent: '4%', category: 'Transportation', icon: faGasPump },
+  { merchant: 'Showmax', percent: '2%', category: 'Entertainment', icon: faFilm },
+  { merchant: 'Checkers', percent: '3%', category: 'Shopping', icon: faCartShopping },
+  { merchant: 'Spotify', percent: '2%', category: 'Entertainment', icon: faMusic },
 ];
 
 export default function CashBackPage() {
@@ -37,7 +39,15 @@ export default function CashBackPage() {
         {placeholderRewards.map((reward, i) => (
           <div key={i} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm opacity-75 relative overflow-hidden">
             <div className="absolute top-2 right-2 bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full">COMING SOON</div>
-            <div className="flex items-center gap-3 mb-3"><div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center text-2xl">{reward.icon}</div><div><h4 className="font-bold text-gray-900">{reward.merchant}</h4><p className="text-xs text-gray-500">{reward.category}</p></div></div>
+            <div className="flex items-center gap-3 mb-3">
+              <span className="w-12 h-12 rounded-3xl bg-emerald-50 grid place-items-center text-emerald-600">
+                <FontAwesomeIcon icon={reward.icon} className="w-6 h-6" />
+              </span>
+              <div>
+                <h4 className="font-bold text-gray-900">{reward.merchant}</h4>
+                <p className="text-xs text-gray-500">{reward.category}</p>
+              </div>
+            </div>
             <div className="flex items-center justify-between"><span className="text-2xl font-bold text-emerald-600">{reward.percent}</span><span className="text-sm text-gray-400">Cash Back</span></div>
           </div>
         ))}

@@ -56,8 +56,8 @@ export default function IncomePage() {
           <div className="divide-y divide-gray-50">
             {sorted.map(income => (
               <div key={income.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-lg">💰</div>
-                <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-gray-900 truncate">{income.source}</p><p className="text-xs text-gray-500">{new Date(income.date).toLocaleDateString('en-ZA')}{income.recurring && <span className="ml-2 text-blue-500 font-medium">🔄 Recurring</span>}</p></div>
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center"><DollarSign className="w-5 h-5 text-emerald-600" /></div>
+                <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-gray-900 truncate">{income.source}</p><p className="text-xs text-gray-500">{new Date(income.date).toLocaleDateString('en-ZA')}{income.recurring && <span className="ml-2 text-blue-500 font-medium"><RefreshCw className="inline-block w-3 h-3 align-text-bottom" /> Recurring</span>}</p></div>
                 <span className="text-sm font-bold text-emerald-600 whitespace-nowrap">+R{income.amount.toFixed(2)}</span>
                 <div className="flex gap-1"><button onClick={() => handleEdit(income)} className="p-2 text-gray-400 hover:text-emerald-600 rounded-lg hover:bg-emerald-50"><Edit2 className="w-4 h-4" /></button><button onClick={() => deleteIncome(income.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50"><Trash2 className="w-4 h-4" /></button></div>
               </div>

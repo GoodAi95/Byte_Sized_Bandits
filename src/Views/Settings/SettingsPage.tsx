@@ -16,7 +16,7 @@ export default function SettingsPage() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
       <div className="mb-6"><h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Settings & Profile</h1><p className="text-gray-500 mt-1">Update your financial information to improve predictions</p></div>
 
-      {saved && (<div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-sm font-semibold flex items-center gap-2">✅ Profile updated and credit score recalculated!</div>)}
+      {saved && (<div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-sm font-semibold">Profile updated and credit score recalculated!</div>)}
 
       <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm mb-6">
         <h3 className="text-lg font-bold text-gray-900 mb-4">Account Information</h3>
@@ -54,10 +54,10 @@ export default function SettingsPage() {
 
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm mb-6">
           <h3 className="text-lg font-bold text-gray-900 mb-4">Lifestyle</h3>
-          <div className="mb-4"><label className="block text-sm font-semibold text-gray-700 mb-2">Gambling Activity</label><div className="grid grid-cols-3 gap-3">{(['No', 'Low', 'High'] as const).map(val => (<button key={val} type="button" onClick={() => update('gambling', val)} className={`py-2.5 rounded-xl border-2 font-semibold text-sm transition-all ${form.gambling === val ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 text-gray-600'}`}>{val === 'No' ? '🚫 None' : val === 'Low' ? '🎲 Low' : '🎰 High'}</button>))}</div></div>
+          <div className="mb-4"><label className="block text-sm font-semibold text-gray-700 mb-2">Gambling Activity</label><div className="grid grid-cols-3 gap-3">{(['No', 'Low', 'High'] as const).map(val => (<button key={val} type="button" onClick={() => update('gambling', val)} className={`py-2.5 rounded-xl border-2 font-semibold text-sm transition-all ${form.gambling === val ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 text-gray-600'}`}>{val}</button>))}</div></div>
           <div className="space-y-3">
-            <label className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-emerald-300"><input type="checkbox" checked={form.hasInvestments} onChange={e => update('hasInvestments', e.target.checked)} className="w-5 h-5 accent-emerald-600" /><span className="font-semibold text-gray-800 text-sm">📈 I have investments</span></label>
-            <label className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-emerald-300"><input type="checkbox" checked={form.hasMortgage} onChange={e => update('hasMortgage', e.target.checked)} className="w-5 h-5 accent-emerald-600" /><span className="font-semibold text-gray-800 text-sm">🏠 I have a mortgage</span></label>
+            <label className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-emerald-300"><input type="checkbox" checked={form.hasInvestments} onChange={e => update('hasInvestments', e.target.checked)} className="w-5 h-5 accent-emerald-600" /><span className="font-semibold text-gray-800 text-sm">I have investments</span></label>
+            <label className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-emerald-300"><input type="checkbox" checked={form.hasMortgage} onChange={e => update('hasMortgage', e.target.checked)} className="w-5 h-5 accent-emerald-600" /><span className="font-semibold text-gray-800 text-sm">I have a mortgage</span></label>
           </div>
         </div>
 

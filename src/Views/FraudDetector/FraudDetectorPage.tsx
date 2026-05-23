@@ -4,12 +4,12 @@ import { detectFraud } from '../../Services/MLService';
 import { Shield, ShieldAlert, ShieldCheck, Send, MessageSquare } from 'lucide-react';
 
 const SAMPLE_MESSAGES = [
-  { label: '🎰 Lottery Scam', text: 'CONGRATULATIONS! You have been selected as a winner of R1,000,000! Click here to claim your prize immediately. Send R500 processing fee via EFT.' },
-  { label: '🏦 Bank Phishing', text: 'URGENT: Your FNB account has been suspended due to unusual activity. Verify your identity immediately by clicking this link or your account will be permanently locked.' },
-  { label: '✅ Legitimate Bank', text: 'Your monthly statement is ready. Log in to your account at our official website to view your transactions. If you have questions, call us at the number on your card.' },
-  { label: '👤 Friend Message', text: 'Hey, are you coming to braai tonight? I was thinking we could meet at 6pm. Let me know!' },
-  { label: '💻 Tech Support Scam', text: 'ALERT: Your computer has been compromised. Call Microsoft Support immediately at 012-XXX-XXXX. Our technicians will install TeamViewer to fix the issue. Do not ignore this warning!' },
-  { label: '📦 Package Scam', text: 'Your parcel could not be delivered. Pay the R29.99 redelivery fee now using this link: bit.ly/xxxxx. Respond immediately to avoid return to sender.' },
+  { label: 'Lottery Scam', text: 'CONGRATULATIONS! You have been selected as a winner of R1,000,000! Click here to claim your prize immediately. Send R500 processing fee via EFT.' },
+  { label: 'Bank Phishing', text: 'URGENT: Your FNB account has been suspended due to unusual activity. Verify your identity immediately by clicking this link or your account will be permanently locked.' },
+  { label: 'Legitimate Bank', text: 'Your monthly statement is ready. Log in to your account at our official website to view your transactions. If you have questions, call us at the number on your card.' },
+  { label: 'Friend Message', text: 'Hey, are you coming to braai tonight? I was thinking we could meet at 6pm. Let me know!' },
+  { label: 'Tech Support Scam', text: 'ALERT: Your computer has been compromised. Call Microsoft Support immediately at 012-XXX-XXXX. Our technicians will install TeamViewer to fix the issue. Do not ignore this warning!' },
+  { label: 'Package Scam', text: 'Your parcel could not be delivered. Pay the R29.99 redelivery fee now using this link: bit.ly/xxxxx. Respond immediately to avoid return to sender.' },
 ];
 
 export default function FraudDetectorPage() {
@@ -51,7 +51,7 @@ export default function FraudDetectorPage() {
             <div className="flex items-start gap-3">
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${scan.result === 'Scam' ? 'bg-red-50' : 'bg-green-50'}`}>{scan.result === 'Scam' ? <ShieldAlert className="w-6 h-6 text-red-500" /> : <ShieldCheck className="w-6 h-6 text-green-500" />}</div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1 flex-wrap"><span className={`text-sm font-bold ${scan.result === 'Scam' ? 'text-red-600' : 'text-green-600'}`}>{scan.result === 'Scam' ? '⚠️ SCAM DETECTED' : '✅ SAFE'}</span><span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${scan.result === 'Scam' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{scan.confidence}% confidence</span></div>
+                <div className="flex items-center gap-2 mb-1 flex-wrap"><span className={`text-sm font-bold ${scan.result === 'Scam' ? 'text-red-600' : 'text-green-600'}`}>{scan.result === 'Scam' ? 'Scam detected' : 'Verified safe'}</span><span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${scan.result === 'Scam' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{scan.confidence}% confidence</span></div>
                 <p className="text-sm text-gray-700 mb-2 line-clamp-2">{scan.inputText}</p>
                 {scan.keywords.length > 0 && (<div className="flex flex-wrap gap-1"><span className="text-xs text-gray-500">Flagged keywords:</span>{scan.keywords.slice(0, 8).map((kw, i) => (<span key={i} className="text-xs px-2 py-0.5 bg-red-50 text-red-600 rounded-full font-medium">{kw}</span>))}</div>)}
                 <p className="text-xs text-gray-400 mt-2">{new Date(scan.scannedAt).toLocaleString('en-ZA')}</p>

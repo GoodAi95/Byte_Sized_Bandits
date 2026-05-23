@@ -1,6 +1,8 @@
 import { useApp } from '../../Controllers/AppController';
 import { predictCreditScore, simulateAction } from '../../Services/MLService';
 import { TrendingUp, DollarSign, CreditCard, PiggyBank, AlertTriangle, CheckCircle, ArrowUpRight, ArrowDownRight, Zap, RefreshCw } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faChartLine, faMoneyBillWave, faPiggyBank, faGauge, faArrowTrendUp, faBriefcase, faHouse, faCreditCard, faHandHoldingDollar, faCircleDollarToSlot, faCalendarDays, faCheckCircle, faBan, faDice, faCalendarPlus, faCircleInfo } from '@fortawesome/free-solid-svg-icons';
 import { Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { useState } from 'react';
 import { formatRandsShort } from '../../Models';
@@ -8,9 +10,11 @@ import { formatRandsShort } from '../../Models';
 export default function Dashboard() {
   const { currentUser, profile, getUserExpenses, getUserIncomes, getUserSavingPlans, getUserCreditHistory, getUserCircles, recordCreditScore } = useApp();
   const [selectedAction, setSelectedAction] = useState('');
+  const [actionSearch, setActionSearch] = useState('');
   const [customAmount, setCustomAmount] = useState<number | ''>('');
   const [customPercentage, setCustomPercentage] = useState<number | ''>('');
   const [simResult, setSimResult] = useState<{ newScore: number; change: number; explanation: string } | null>(null);
+  const [simulationHistory, setSimulationHistory] = useState<Array<{ action: string; newScore: number; change: number; explanation: string }>>([]);
 
   if (!profile || !currentUser) return null;
 
@@ -44,49 +48,49 @@ export default function Dashboard() {
   // Action groups for better organization
   const actionGroups = {
     debtManagement: [
-      { value: 'pay_debt_custom', label: 'Pay off custom amount', emoji: '💰', hasCustom: true, customType: 'amount' as const },
-      { value: 'pay_debt_500', label: 'Pay off R500', emoji: '💰' },
-      { value: 'pay_debt_1000', label: 'Pay off R1,000', emoji: '💵' },
+      { value: 'pay_debt_custom', label: 'Pay off custom amount', icon: faMoneyBillWave, description: 'Reduce your overall balance and improve credit utilization.', hasCustom: true, customType: 'amount' as const, presetAmounts: [500, 1000, 2000] },
+      { value: 'pay_debt_500', label: 'Pay off R500', icon: faMoneyBillWave, description: 'Small debt payment to signal stronger repayment behavior.' },
+      { value: 'pay_debt_1000', label: 'Pay off R1,000', icon: faMoneyBillWave, description: 'A larger payment to lower your outstanding balance.' },
     ],
     savingsInvestment: [
-      { value: 'increase_savings_custom', label: 'Save custom amount', emoji: '🐷', hasCustom: true, customType: 'amount' as const },
-      { value: 'increase_savings_500', label: 'Save R500 more', emoji: '🐷' },
-      { value: 'start_investing', label: 'Start investing', emoji: '📈' },
+      { value: 'increase_savings_custom', label: 'Save custom amount', icon: faPiggyBank, description: 'Move more money into savings and reduce reliance on credit.', hasCustom: true, customType: 'amount' as const, presetAmounts: [500, 1000, 2000] },
+      { value: 'increase_savings_500', label: 'Save R500 more', icon: faPiggyBank, description: 'Increase your savings by a fixed amount each month.' },
+      { value: 'start_investing', label: 'Start investing', icon: faChartLine, description: 'Begin investing to build your financial profile and long-term assets.' },
     ],
     creditUtilization: [
-      { value: 'reduce_utilization_custom', label: 'Reduce util. by %', emoji: '📉', hasCustom: true, customType: 'percentage' as const },
-      { value: 'reduce_utilization', label: 'Reduce util. 10%', emoji: '📉' },
+      { value: 'reduce_utilization_custom', label: 'Reduce util. by %', icon: faGauge, description: 'Lower your credit usage ratio by a percentage.', hasCustom: true, customType: 'percentage' as const, presetPercentages: [5, 10, 15] },
+      { value: 'reduce_utilization', label: 'Reduce util. 10%', icon: faGauge, description: 'Reduce your credit utilization by 10% with targeted actions.' },
     ],
     incomeEmployment: [
-      { value: 'increase_income_custom', label: 'Increase income', emoji: '📊', hasCustom: true, customType: 'amount' as const },
-      { value: 'increase_income_5k', label: 'Increase +R5k/month', emoji: '📊' },
-      { value: 'change_employment_custom', label: 'Change employment', emoji: '💼' },
-      { value: 'adjust_rent_custom', label: 'Adjust rent', emoji: '🏠', hasCustom: true, customType: 'amount' as const },
+      { value: 'increase_income_custom', label: 'Increase income', icon: faArrowTrendUp, description: 'Boost your income to improve affordability and credit health.', hasCustom: true, customType: 'amount' as const, presetAmounts: [1000, 3000, 5000] },
+      { value: 'increase_income_5k', label: 'Increase +R5k/month', icon: faArrowTrendUp, description: 'An income boost that can ease monthly pressure.' },
+      { value: 'change_employment_custom', label: 'Change employment', icon: faBriefcase, description: 'Switching roles or jobs can affect your long-term score profile.' },
+      { value: 'adjust_rent_custom', label: 'Adjust rent', icon: faHouse, description: 'Changing your rent helps model your monthly savings potential.', hasCustom: true, customType: 'amount' as const, presetAmounts: [500, 1000, 1500] },
     ],
     creditCards: [
-      { value: 'new_credit_card_custom', label: 'Open # of cards', emoji: '💳', hasCustom: true, customType: 'amount' as const },
-      { value: 'new_credit_card', label: 'Open new card', emoji: '💳' },
+      { value: 'new_credit_card_custom', label: 'Open # of cards', icon: faCreditCard, description: 'Adding credit cards can change your utilization and account mix.', hasCustom: true, customType: 'amount' as const, presetAmounts: [1, 2, 3] },
+      { value: 'new_credit_card', label: 'Open new card', icon: faCreditCard, description: 'Opening one new card can improve credit mix if managed responsibly.' },
     ],
     loans: [
-      { value: 'new_loan_custom', label: 'Take custom loan', emoji: '🏦', hasCustom: true, customType: 'amount' as const },
-      { value: 'new_loan', label: 'Take R5k loan', emoji: '🏦' },
-      { value: 'pay_off_loan', label: 'Pay off one loan', emoji: '✅' },
-      { value: 'get_mortgage', label: 'Get R500k Home loan', emoji: '🏡' },
-      { value: 'pay_off_mortgage', label: 'Pay off Home loan', emoji: '🔓' },
+      { value: 'new_loan_custom', label: 'Take custom loan', icon: faHandHoldingDollar, description: 'Simulate a loan amount to see its score impact.', hasCustom: true, customType: 'amount' as const, presetAmounts: [5000, 10000, 20000] },
+      { value: 'new_loan', label: 'Take R5k loan', icon: faHandHoldingDollar, description: 'A standard loan amount to compare score impact.' },
+      { value: 'pay_off_loan', label: 'Pay off one loan', icon: faCircleDollarToSlot, description: 'Paying down a loan helps improve debt ratios.' },
+      { value: 'get_mortgage', label: 'Get R500k Home loan', icon: faHouse, description: 'Model the effect of taking on a mortgage loan.' },
+      { value: 'pay_off_mortgage', label: 'Pay off Home loan', icon: faHouse, description: 'Simulate the impact of reducing mortgage debt.' },
     ],
     paymentHistory: [
-      { value: 'miss_payment_single', label: 'Miss 1 payment', emoji: '⚠️' },
-      { value: 'miss_payment_multiple', label: 'Miss # payments', emoji: '⚠️', hasCustom: true, customType: 'amount' as const },
-      { value: 'cure_missed_payments', label: 'Cure missed pmts', emoji: '✨', hasCustom: true, customType: 'amount' as const },
-      { value: 'miss_payment', label: 'Miss a payment', emoji: '⚠️' },
+      { value: 'miss_payment_single', label: 'Miss 1 payment', icon: faCalendarDays, description: 'A single missed payment has a measurable score impact.' },
+      { value: 'miss_payment_multiple', label: 'Miss # payments', icon: faCalendarDays, description: 'Multiple missed payments can significantly lower your score.', hasCustom: true, customType: 'amount' as const, presetAmounts: [2, 3, 4] },
+      { value: 'cure_missed_payments', label: 'Cure missed pmts', icon: faCheckCircle, description: 'Correcting payment history helps recover your score.', hasCustom: true, customType: 'amount' as const, presetAmounts: [1, 2, 3] },
+      { value: 'miss_payment', label: 'Miss a payment', icon: faCalendarDays, description: 'A single missed bill payment can reduce your score.' },
     ],
     lifestyleRisk: [
-      { value: 'reduce_gambling', label: 'Reduce gambling', emoji: '🚫' },
-      { value: 'reduce_gambling_custom', label: 'Reduce gambling to', emoji: '🚫', hasCustom: true, customType: 'amount' as const },
-      { value: 'increase_gambling', label: 'Increase gambling', emoji: '🎲' },
+      { value: 'reduce_gambling', label: 'Reduce gambling', icon: faBan, description: 'Lower risking spending habits for a healthier credit profile.' },
+      { value: 'reduce_gambling_custom', label: 'Reduce gambling to', icon: faBan, description: 'Set a target reduction amount for gambling spending.', hasCustom: true, customType: 'amount' as const, presetAmounts: [200, 500, 1000] },
+      { value: 'increase_gambling', label: 'Increase gambling', icon: faDice, description: 'Higher risk spending may hurt your score.' },
     ],
     creditHistory: [
-      { value: 'age_credit_history_years', label: 'Age credit # years', emoji: '📅', hasCustom: true, customType: 'amount' as const },
+      { value: 'age_credit_history_years', label: 'Age credit # years', icon: faCalendarPlus, description: 'Longer credit history can strengthen your score.', hasCustom: true, customType: 'amount' as const, presetAmounts: [1, 2, 3] },
     ],
   };
 
@@ -95,6 +99,10 @@ export default function Dashboard() {
   // Determine if current action needs custom input
   const currentActionConfig = allActions.find(a => a.value === selectedAction);
   const needsCustomInput = currentActionConfig?.hasCustom;
+  const filteredActions = allActions.filter(action =>
+    action.label.toLowerCase().includes(actionSearch.toLowerCase())
+  );
+  const visibleActions = actionSearch.trim().length ? filteredActions : allActions;
 
   const handleSimulate = () => {
     if (!selectedAction) return;
@@ -110,6 +118,10 @@ export default function Dashboard() {
       currentActionConfig?.customType === 'percentage' ? Number(customVal) || undefined : undefined
     );
     setSimResult(result);
+    setSimulationHistory(prev => [
+      { action: currentActionConfig?.label ?? 'Simulation', ...result },
+      ...prev,
+    ].slice(0, 5));
   };
 
   const positiveFactors = prediction.factors.filter(f => f.direction === 'positive').slice(0, 3);
@@ -118,7 +130,7 @@ export default function Dashboard() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Welcome back, {currentUser.fullName.split(' ')[0]}! 👋</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Welcome back, {currentUser.fullName.split(' ')[0]}!</h1>
         <p className="text-gray-500 mt-1">Here's your financial health overview</p>
       </div>
 
@@ -250,68 +262,105 @@ export default function Dashboard() {
           <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2"><Zap className="w-5 h-5 text-amber-500" /> What-If Simulator</h3>
           <p className="text-sm text-gray-500 mb-4">Predict score impact with custom amounts & detailed scenarios</p>
           
-          {/* Category Tabs */}
+          <div className="mb-4">
+            <label htmlFor="actionSearch" className="block text-sm font-semibold text-gray-700 mb-2">Search scenarios</label>
+            <input
+              id="actionSearch"
+              type="search"
+              value={actionSearch}
+              onChange={(e) => setActionSearch(e.target.value)}
+              placeholder="Search savings, debt, income, credit..."
+              className="w-full px-4 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+            />
+          </div>
+
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-            {Object.entries(actionGroups).map(([key, _]) => (
+            {Object.entries(actionGroups).map(([key]) => (
               <button key={key} onClick={() => { setSelectedAction(''); setSimResult(null); setCustomAmount(''); setCustomPercentage(''); }}
-                className="px-3 py-2 rounded-lg text-xs font-medium transition-all" 
-                style={{ 
-                  background: selectedAction && allActions.find(a => a.value === selectedAction && actionGroups[key as keyof typeof actionGroups]?.find(x => x.value === a.value)) ? '#2D6A4F' : '#F3F4F6',
-                  color: selectedAction && allActions.find(a => a.value === selectedAction && actionGroups[key as keyof typeof actionGroups]?.find(x => x.value === a.value)) ? '#fff' : '#6B7280'
-                }}>
+                className="px-3 py-2 rounded-2xl text-xs font-medium text-gray-600 border border-gray-200 hover:border-emerald-300 transition-all">
                 {key.split(/(?=[A-Z])/).join(' ')}
               </button>
             ))}
           </div>
 
-          {/* Action Buttons - Grid Layout */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4 max-h-[320px] overflow-y-auto pr-2">
-            {allActions.map(action => (
-              <button 
-                key={action.value} 
-                onClick={() => { 
-                  setSelectedAction(action.value); 
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4 max-h-[340px] overflow-y-auto pr-2">
+            {visibleActions.map(action => (
+              <button
+                key={action.value}
+                onClick={() => {
+                  setSelectedAction(action.value);
                   setSimResult(null);
                   if (action.customType === 'amount') setCustomAmount('');
                   if (action.customType === 'percentage') setCustomPercentage('');
                 }}
-                className={`text-left p-2.5 rounded-lg border transition-all text-xs sm:text-sm flex flex-col items-start ${
-                  selectedAction === action.value 
-                    ? 'border-emerald-500 bg-emerald-50' 
-                    : 'border-gray-200 hover:border-gray-300 bg-gray-50'
-                }`}
-              >
-                <span className="text-lg mb-1">{action.emoji}</span>
-                <span className="font-medium text-gray-800 line-clamp-2">{action.label}</span>
+                className={`text-left p-3 rounded-3xl border transition-all border-gray-200 bg-gray-50 hover:border-emerald-300 ${selectedAction === action.value ? 'bg-emerald-50 border-emerald-300 shadow-sm' : ''}`}>
+                <div className="flex items-start gap-3 mb-3">
+                  <span className="w-10 h-10 rounded-2xl bg-emerald-50 grid place-items-center text-emerald-600">
+                    <FontAwesomeIcon icon={action.icon ?? faCircleInfo} className="w-4 h-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="font-semibold text-gray-900 text-sm">{action.label}</div>
+                    {action.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{action.description}</p>}
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">
+                  {action.hasCustom ? 'Custom input available' : 'One-click preview'}
+                </div>
               </button>
             ))}
           </div>
 
-          {/* Custom Input Fields */}
-          {needsCustomInput && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          {needsCustomInput && currentActionConfig && (
+            <div className="bg-blue-50 border border-blue-200 rounded-3xl p-4 mb-4">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {currentActionConfig?.customType === 'amount' 
-                  ? 'Enter Amount (R)' 
-                  : 'Enter Percentage (%)'}
+                {currentActionConfig.customType === 'amount' ? 'Enter amount (R)' : 'Enter percentage (%)'}
               </label>
-              <input 
-                type="number" 
-                value={currentActionConfig?.customType === 'amount' ? customAmount : customPercentage}
-                onChange={(e) => {
-                  if (currentActionConfig?.customType === 'amount') {
-                    setCustomAmount(e.target.value ? Number(e.target.value) : '');
-                  } else {
-                    setCustomPercentage(e.target.value ? Number(e.target.value) : '');
-                  }
-                }}
-                placeholder={currentActionConfig?.customType === 'amount' ? '500' : '10'}
-                className="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
+                <input
+                  type="number"
+                  value={currentActionConfig.customType === 'amount' ? customAmount : customPercentage}
+                  onChange={(e) => {
+                    if (currentActionConfig.customType === 'amount') {
+                      setCustomAmount(e.target.value ? Number(e.target.value) : '');
+                    } else {
+                      setCustomPercentage(e.target.value ? Number(e.target.value) : '');
+                    }
+                  }}
+                  placeholder={currentActionConfig.customType === 'amount' ? '500' : '10'}
+                  className="w-full px-4 py-3 border border-blue-300 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                {currentActionConfig.presetAmounts?.length && currentActionConfig.customType === 'amount' ? (
+                  <div className="space-y-2">
+                    {currentActionConfig.presetAmounts.map((amount) => (
+                      <button
+                        key={amount}
+                        type="button"
+                        onClick={() => setCustomAmount(amount)}
+                        className="w-full py-2 rounded-2xl bg-white border border-gray-200 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        R{amount}
+                      </button>
+                    ))}
+                  </div>
+                ) : currentActionConfig.presetPercentages?.length && currentActionConfig.customType === 'percentage' ? (
+                  <div className="space-y-2">
+                    {currentActionConfig.presetPercentages.map((percent) => (
+                      <button
+                        key={percent}
+                        type="button"
+                        onClick={() => setCustomPercentage(percent)}
+                        className="w-full py-2 rounded-2xl bg-white border border-gray-200 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        {percent}%
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
               <p className="text-xs text-gray-600 mt-2">
-                {currentActionConfig?.customType === 'amount' 
-                  ? 'Specify any amount for more accurate simulation'
-                  : 'Enter percentage to reduce by'}
+                {currentActionConfig.customType === 'amount'
+                  ? 'Try one of the quick values to model an impact faster.'
+                  : 'Select a quick percentage or enter a custom value.'}
               </p>
             </div>
           )}
@@ -340,6 +389,29 @@ export default function Dashboard() {
                 <p className="text-sm text-gray-700 leading-relaxed">{simResult.explanation}</p>
               </div>
             )}
+            {simulationHistory.length > 0 && (
+              <div className="bg-white rounded-3xl p-4 border border-gray-200">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-semibold text-gray-700">Recent simulations</p>
+                  <span className="text-xs text-gray-500">{simulationHistory.length} saved</span>
+                </div>
+                <div className="space-y-3">
+                  {simulationHistory.map((entry, index) => (
+                    <div key={`${entry.action}-${index}`} className="p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                      <div className="flex items-center justify-between gap-3 text-sm">
+                        <div>
+                          <p className="font-semibold text-gray-900">{entry.action}</p>
+                          <p className="text-xs text-gray-500">{entry.explanation}</p>
+                        </div>
+                        <span className={`font-bold ${entry.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {entry.change >= 0 ? '+' : ''}{entry.change}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -350,7 +422,7 @@ export default function Dashboard() {
           <div className="space-y-3">
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-600">Monthly Rent 🏠</span>
+                <span className="text-xs text-gray-600">Monthly Rent</span>
                 <span className="text-sm font-semibold text-gray-900">{formatRandsShort(profile.monthlyRent)}</span>
               </div>
               <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -359,7 +431,7 @@ export default function Dashboard() {
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-600">Other Expenses 📊</span>
+                <span className="text-xs text-gray-600">Other Expenses</span>
                 <span className="text-sm font-semibold text-gray-900">{formatRandsShort(thisMonthExpenses)}</span>
               </div>
               <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">

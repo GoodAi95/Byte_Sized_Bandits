@@ -32,7 +32,7 @@ export default function CirclesPage() {
         <div className="mb-6 space-y-2">
           {nudges.map(n => (
             <div key={n.id} className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
-              <span className="text-2xl">👋</span>
+              <span className="inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 font-semibold">N</span>
               <div className="flex-1"><p className="text-sm font-medium text-amber-800">{n.message}</p><p className="text-xs text-amber-600">{new Date(n.createdAt).toLocaleDateString('en-ZA')}</p></div>
               <button onClick={() => markNudgeRead(n.id)} className="text-amber-500 hover:text-amber-700 text-sm font-semibold">Dismiss</button>
             </div>

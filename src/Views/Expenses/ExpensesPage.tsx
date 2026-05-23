@@ -3,11 +3,14 @@ import { useApp } from '../../Controllers/AppController';
 import type { ExpenseCategory, Expense } from '../../Models';
 import { formatRandsShort } from '../../Models';
 import { Plus, Edit2, Trash2, X, Search, Filter } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHouse, faCar, faUtensils, faLightbulb, faHospital, faFilm, faShoppingBag, faBookOpen, faWallet, faPiggyBank, faShieldHalved, faEllipsisH } from '@fortawesome/free-solid-svg-icons';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 const CATEGORIES: ExpenseCategory[] = ['Housing', 'Transportation', 'Food', 'Utilities', 'Healthcare', 'Entertainment', 'Shopping', 'Education', 'Debt Payment', 'Savings', 'Insurance', 'Other'];
 const CATEGORY_COLORS: Record<string, string> = { Housing: '#2D6A4F', Transportation: '#40916C', Food: '#52B788', Utilities: '#74C69D', Healthcare: '#95D5B2', Entertainment: '#F59E0B', Shopping: '#EC4899', Education: '#8B5CF6', 'Debt Payment': '#EF4444', Savings: '#22C55E', Insurance: '#3B82F6', Other: '#6B7280' };
-const CATEGORY_EMOJIS: Record<string, string> = { Housing: '🏠', Transportation: '🚗', Food: '🍕', Utilities: '💡', Healthcare: '🏥', Entertainment: '🎬', Shopping: '🛍️', Education: '📚', 'Debt Payment': '💳', Savings: '🐷', Insurance: '🛡️', Other: '📦' };
+const CATEGORY_ICONS: Record<string, any> = { Housing: faHouse, Transportation: faCar, Food: faUtensils, Utilities: faLightbulb, Healthcare: faHospital, Entertainment: faFilm, Shopping: faShoppingBag, Education: faBookOpen, 'Debt Payment': faWallet, Savings: faPiggyBank, Insurance: faShieldHalved, Other: faEllipsisH };
+const getCategoryInitials = (category: string) => category.split(' ').map(word => word[0]).join('').slice(0, 2).toUpperCase();
 
 export default function ExpensesPage() {
   const { getUserExpenses, addExpense, updateExpense, deleteExpense } = useApp();
@@ -66,7 +69,9 @@ export default function ExpensesPage() {
           <div className="divide-y divide-gray-50">
             {filtered.map(expense => (
               <div key={expense.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ backgroundColor: `${CATEGORY_COLORS[expense.category]}15` }}>{CATEGORY_EMOJIS[expense.category] || '📦'}</div>
+                <span className="w-10 h-10 rounded-2xl bg-emerald-50 grid place-items-center text-emerald-600">
+                  <FontAwesomeIcon icon={CATEGORY_ICONS[expense.category] ?? faEllipsisH} className="w-5 h-5" />
+                </span>
                 <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-gray-900 truncate">{expense.description}</p><p className="text-xs text-gray-500">{expense.category} • {new Date(expense.date).toLocaleDateString('en-ZA')}</p></div>
                 <span className="text-sm font-bold text-red-600 whitespace-nowrap">-R{expense.amount.toFixed(2)}</span>
                 <div className="flex gap-1"><button onClick={() => handleEdit(expense)} className="p-2 text-gray-400 hover:text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors"><Edit2 className="w-4 h-4" /></button><button onClick={() => deleteExpense(expense.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="w-4 h-4" /></button></div>
@@ -82,7 +87,7 @@ export default function ExpensesPage() {
             <div className="flex items-center justify-between mb-5"><h3 className="text-lg font-bold text-gray-900">{editingId ? 'Edit Expense' : 'Add Expense'}</h3><button onClick={resetForm} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button></div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div><label className="block text-sm font-semibold text-gray-700 mb-1">Amount (R)</label><input type="number" step="0.01" min="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 text-gray-900" placeholder="0.00" required /></div>
-              <div><label className="block text-sm font-semibold text-gray-700 mb-1">Category</label><select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value as ExpenseCategory }))} className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 text-gray-900 bg-white">{CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_EMOJIS[c]} {c}</option>)}</select></div>
+              <div><label className="block text-sm font-semibold text-gray-700 mb-1">Category</label><select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value as ExpenseCategory }))} className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 text-gray-900 bg-white">{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
               <div><label className="block text-sm font-semibold text-gray-700 mb-1">Description</label><input type="text" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 text-gray-900" placeholder="What did you spend on?" required /></div>
               <div><label className="block text-sm font-semibold text-gray-700 mb-1">Date</label><input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 text-gray-900" /></div>
               <div className="flex gap-3 pt-2"><button type="button" onClick={resetForm} className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-600 font-semibold hover:border-gray-300">Cancel</button><button type="submit" className="flex-1 py-2.5 rounded-xl font-semibold text-white" style={{ background: 'linear-gradient(135deg, #2D6A4F, #40916C)' }}>{editingId ? 'Save Changes' : 'Add Expense'}</button></div>

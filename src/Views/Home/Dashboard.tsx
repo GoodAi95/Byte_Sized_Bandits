@@ -1,34 +1,55 @@
 import { useApp } from '../../Controllers/AppController';
 import { predictCreditScore, simulateAction } from '../../Services/MLService';
-import { TrendingUp, DollarSign, CreditCard, PiggyBank, AlertTriangle, CheckCircle, ArrowUpRight, ArrowDownRight, Zap, RefreshCw } from 'lucide-react';
+import { TrendingUp, AlertTriangle, CheckCircle, ArrowUpRight, ArrowDownRight, Zap, RefreshCw, Bell } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChartLine, faMoneyBillWave, faPiggyBank, faGauge, faArrowTrendUp, faBriefcase, faHouse, faCreditCard, faHandHoldingDollar, faCircleDollarToSlot, faCalendarDays, faCheckCircle, faBan, faDice, faCalendarPlus, faCircleInfo } from '@fortawesome/free-solid-svg-icons';
 import { Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { useState } from 'react';
+import { db, DbSets } from '../../Data/ApplicationDbContext';
+import type { FinancialProfile } from '../../Models';
 import { formatRandsShort } from '../../Models';
 
 export default function Dashboard() {
-  const { currentUser, profile, getUserExpenses, getUserIncomes, getUserSavingPlans, getUserCreditHistory, getUserCircles, recordCreditScore } = useApp();
+  const { currentUser, profile, getUserExpenses, getUserIncomes, getUserCreditHistory, getUserCircles, getCircleMembers, sendNudge, recordCreditScore } = useApp();
   const [selectedAction, setSelectedAction] = useState('');
   const [actionSearch, setActionSearch] = useState('');
   const [customAmount, setCustomAmount] = useState<number | ''>('');
   const [customPercentage, setCustomPercentage] = useState<number | ''>('');
   const [simResult, setSimResult] = useState<{ newScore: number; change: number; explanation: string } | null>(null);
   const [simulationHistory, setSimulationHistory] = useState<Array<{ action: string; newScore: number; change: number; explanation: string }>>([]);
+  const [circleNudgeMessages, setCircleNudgeMessages] = useState<Record<string, string>>({});
+  const [nudgeStatus, setNudgeStatus] = useState('');
 
   if (!profile || !currentUser) return null;
 
   const prediction = predictCreditScore(profile);
   const expenses = getUserExpenses();
   const incomes = getUserIncomes();
-  const savingPlans = getUserSavingPlans();
   const creditHistory = getUserCreditHistory();
   const circles = getUserCircles();
+  const activeCircle = circles[0] || null;
+  const circleMembers = activeCircle ? getCircleMembers(activeCircle.id) : [];
+  const profiles = db.get<FinancialProfile[]>(DbSets.PROFILES, []);
+  const circleMemberProfiles = circleMembers.map(member => profiles.find(p => p.userId === member.id)).filter(Boolean) as FinancialProfile[];
+  const avgCircleUtilization = circleMemberProfiles.length ? Math.round(circleMemberProfiles.reduce((sum, p) => sum + p.creditUtilization, 0) / circleMemberProfiles.length) : 0;
+  const avgCircleScore = circleMemberProfiles.length ? Math.round(circleMemberProfiles.reduce((sum, p) => sum + predictCreditScore(p).predictedScore, 0) / circleMemberProfiles.length) : 0;
+  const avgUtilColor = avgCircleUtilization <= 30 ? '#22C55E' : avgCircleUtilization <= 50 ? '#F59E0B' : '#EF4444';
+  const avgUtilText = avgCircleUtilization <= 30 ? 'On track' : avgCircleUtilization <= 50 ? 'Moderate' : 'High';
+  const avgScoreColor = avgCircleScore >= 740 ? '#22C55E' : avgCircleScore >= 670 ? '#F59E0B' : avgCircleScore >= 580 ? '#F97316' : '#EF4444';
+  const avgScoreText = avgCircleScore >= 740 ? 'Excellent' : avgCircleScore >= 670 ? 'Good' : avgCircleScore >= 580 ? 'Fair' : 'Poor';
+
+  const handleCircleNudge = (memberId: string) => {
+    if (!activeCircle) return;
+    const message = circleNudgeMessages[memberId] || `Reminder: stay focused on your circle goal.`;
+    sendNudge(activeCircle.id, memberId, message);
+    setCircleNudgeMessages(prev => ({ ...prev, [memberId]: '' }));
+    setNudgeStatus(`Nudge sent to ${circleMembers.find(m => m.id === memberId)?.fullName || 'member'}`);
+    window.setTimeout(() => setNudgeStatus(''), 3000);
+  };
 
   const thisMonthExpenses = expenses.filter(e => new Date(e.date).getMonth() === new Date().getMonth()).reduce((sum, e) => sum + e.amount, 0);
   const thisMonthIncome = incomes.filter(i => new Date(i.date).getMonth() === new Date().getMonth()).reduce((sum, i) => sum + i.amount, 0);
-  const totalSaved = savingPlans.reduce((sum, p) => sum + p.currentAmount, 0);
-  
+
   // Include rent in total expenses
   const totalMonthlyExpenses = thisMonthExpenses + profile.monthlyRent;
   // Calculate remaining balance after all expenses
@@ -99,6 +120,8 @@ export default function Dashboard() {
   // Determine if current action needs custom input
   const currentActionConfig = allActions.find(a => a.value === selectedAction);
   const needsCustomInput = currentActionConfig?.hasCustom;
+  const currentActionPresetAmounts = currentActionConfig?.customType === 'amount' ? currentActionConfig.presetAmounts : undefined;
+  const currentActionPresetPercentages = currentActionConfig?.customType === 'percentage' ? currentActionConfig.presetPercentages : undefined;
   const filteredActions = allActions.filter(action =>
     action.label.toLowerCase().includes(actionSearch.toLowerCase())
   );
@@ -134,30 +157,210 @@ export default function Dashboard() {
         <p className="text-gray-500 mt-1">Here's your financial health overview</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-        {[
-          { label: 'Predicted Score', value: prediction.predictedScore.toString(), sub: scoreLabel, icon: TrendingUp, color: scoreColor, bgColor: `${scoreColor}15` },
-          { label: 'Monthly Expenses', value: formatRandsShort(totalMonthlyExpenses), sub: `${expenses.length + (profile.monthlyRent > 0 ? 1 : 0)} items (incl. rent)`, icon: CreditCard, color: '#EF4444', bgColor: '#FEF2F2' },
-          { label: 'Monthly Income', value: formatRandsShort(monthlyIncomeAmount), sub: thisMonthIncome ? `${incomes.length} sources` : 'Base salary', icon: DollarSign, color: '#22C55E', bgColor: '#F0FDF4' },
-          { label: 'Remaining Balance', value: formatRandsShort(remainingBalance), sub: remainingBalance >= 0 ? 'Available' : 'Deficit', icon: PiggyBank, color: remainingBalance >= 0 ? '#22C55E' : '#EF4444', bgColor: remainingBalance >= 0 ? '#F0FDF4' : '#FEF2F2' },
-          { label: 'Total Saved', value: formatRandsShort(totalSaved + profile.totalSavings), sub: `${savingPlans.length} active plan(s)`, icon: PiggyBank, color: '#8B5CF6', bgColor: '#F5F3FF' },
-        ].map((stat, i) => (
-          <div key={i} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between mb-3">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ backgroundColor: stat.bgColor }}>
-                <stat.icon className="w-5 h-5" style={{ color: stat.color }} />
-              </div>
-              {i === 0 && (
-                <button onClick={recordCreditScore} className="text-gray-400 hover:text-emerald-600 transition-colors" title="Refresh prediction">
-                  <RefreshCw className="w-4 h-4" />
-                </button>
-              )}
+      <div className="grid grid-cols-1 xl:grid-cols-[1.9fr_1fr] gap-4 mb-8">
+        <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+          <div className="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Credit Score</p>
+              <h2 className="mt-2 text-3xl sm:text-4xl font-bold text-gray-900">{prediction.predictedScore}</h2>
+              <p className="text-sm text-gray-500 mt-1">{scoreLabel} predicted score</p>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-            <p className="text-sm text-gray-500 mt-0.5">{stat.label}</p>
-            <p className="text-xs mt-1" style={{ color: stat.color }}>{stat.sub}</p>
+            <button onClick={recordCreditScore} className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:border-emerald-300 hover:text-emerald-700 transition-colors">
+              <RefreshCw className="w-4 h-4" /> Refresh
+            </button>
           </div>
-        ))}
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            <div className="rounded-3xl bg-slate-50 p-4 text-center">
+              <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Reported</p>
+              <p className="mt-2 text-2xl font-semibold text-gray-900">{profile.currentCreditScore}</p>
+            </div>
+            <div className="rounded-3xl bg-slate-50 p-4 text-center">
+              <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Prediction</p>
+              <p className="mt-2 text-2xl font-semibold" style={{ color: scoreColor }}>{prediction.predictedScore}</p>
+            </div>
+            <div className="rounded-3xl bg-slate-50 p-4 text-center">
+              <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Confidence</p>
+              <p className="mt-2 text-2xl font-semibold text-gray-900">{historyData.length > 1 ? `${Math.min(100, Math.round((prediction.predictedScore / 850) * 100))}%` : 'Fresh'}</p>
+            </div>
+          </div>
+
+          <div className="relative w-full h-[320px] sm:h-[340px] mb-5">
+            <svg viewBox="0 0 200 200" className="w-full h-full -rotate-90">
+              <circle cx="100" cy="100" r="82" fill="none" stroke="#F3F4F6" strokeWidth="14" />
+              <circle cx="100" cy="100" r="82" fill="none" stroke={scoreColor} strokeWidth="14"
+                strokeDasharray={`${((prediction.predictedScore - 300) / 550) * 515} 515`} strokeLinecap="round" className="transition-all duration-1000" />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-5xl sm:text-6xl font-bold" style={{ color: scoreColor }}>{prediction.predictedScore}</span>
+              <span className="text-sm text-gray-500 font-medium mt-2">{scoreLabel}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 text-xs text-gray-500">
+            <div className="rounded-3xl bg-slate-50 p-3">
+              <p className="font-semibold text-gray-900">300</p>
+              <p className="mt-1">Low baseline</p>
+            </div>
+            <div className="rounded-3xl bg-slate-50 p-3">
+              <p className="font-semibold text-gray-900">850</p>
+              <p className="mt-1">Max score</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Credit Utilization</p>
+                <p className="text-xs text-gray-500 mt-1">How much of your credit you are currently using</p>
+              </div>
+              <span className="text-sm font-bold text-gray-900">{profile.creditUtilization}%</span>
+            </div>
+            <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+              <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-amber-500" style={{ width: `${profile.creditUtilization}%` }} />
+            </div>
+            <p className="text-xs text-gray-500 mt-3">{profile.creditUtilization > 30 ? 'Above target, aim for below 30%' : 'Healthy utilization level'}</p>
+          </div>
+
+          <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Debt-to-Income</p>
+                <p className="text-xs text-gray-500 mt-1">Your total debt relative to income</p>
+              </div>
+              <span className="text-sm font-bold text-gray-900">{profile.monthlyIncome > 0 ? Math.round((profile.totalDebt / (profile.monthlyIncome * 12)) * 100) : 0}%</span>
+            </div>
+            <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+              <div className="h-full rounded-full" style={{ width: `${Math.min(100, profile.monthlyIncome > 0 ? (profile.totalDebt / (profile.monthlyIncome * 12)) * 100 : 0)}%`, background: profile.totalDebt / (profile.monthlyIncome * 12) > 0.43 ? '#EF4444' : '#22C55E' }} />
+            </div>
+            <p className="text-xs text-gray-500 mt-3">{profile.totalDebt / (profile.monthlyIncome * 12) > 0.43 ? 'Above recommended 43%' : 'Healthy ratio'}</p>
+          </div>
+
+          <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Monthly Expenses</p>
+                <p className="text-xs text-gray-500 mt-1">Including rent and recurring bills</p>
+              </div>
+              <span className="text-sm font-bold text-gray-900">{formatRandsShort(totalMonthlyExpenses)}</span>
+            </div>
+            <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+              <div className="h-full rounded-full bg-gradient-to-r from-red-400 via-orange-400 to-amber-400" style={{ width: `${totalMonthlyExpenses > 0 ? Math.min(100, (totalMonthlyExpenses / Math.max(profile.monthlyIncome, totalMonthlyExpenses)) * 100) : 0}%` }} />
+            </div>
+            <p className="text-xs text-gray-500 mt-3">{remainingBalance >= 0 ? 'Budget is balanced' : 'Spending exceeds income'}</p>
+          </div>
+
+          <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Remaining Balance</p>
+                <p className="text-xs text-gray-500 mt-1">Income left after expenses</p>
+              </div>
+              <span className={`text-sm font-bold ${remainingBalance >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>{formatRandsShort(remainingBalance)}</span>
+            </div>
+            <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+              <div className="h-full rounded-full" style={{ width: `${Math.min(100, totalMonthlyExpenses > 0 ? (Math.max(0, remainingBalance) / totalMonthlyExpenses) * 100 : 0)}%`, background: remainingBalance >= 0 ? '#22C55E' : '#EF4444' }} />
+            </div>
+            <p className="text-xs text-gray-500 mt-3">{remainingBalance >= 0 ? 'Savings potential available' : 'Review expenses to improve cash flow'}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+          <h4 className="text-sm font-semibold text-gray-500 mb-4">Expense Health</h4>
+          <p className="text-sm text-gray-600 mb-4">A quick view of your main spending buckets and available cash.</p>
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-center justify-between text-xs text-gray-500 mb-2"><span>Rent</span><span>{formatRandsShort(profile.monthlyRent)}</span></div>
+              <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-400" style={{ width: `${profile.monthlyRent > 0 ? (profile.monthlyRent / totalMonthlyExpenses) * 100 : 0}%` }} />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between text-xs text-gray-500 mb-2"><span>Other expenses</span><span>{formatRandsShort(thisMonthExpenses)}</span></div>
+              <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-full rounded-full bg-gradient-to-r from-red-400 via-orange-400 to-amber-400" style={{ width: `${thisMonthExpenses > 0 ? (thisMonthExpenses / totalMonthlyExpenses) * 100 : 0}%` }} />
+              </div>
+            </div>
+            <div className={`rounded-3xl p-3 text-sm ${remainingBalance >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+              <div className="flex items-center justify-between"><span>Remaining cash</span><span className="font-semibold">{formatRandsShort(remainingBalance)}</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+          <h4 className="text-sm font-semibold text-gray-500 mb-4">Debt-to-Income</h4>
+          <div className="text-3xl font-bold text-gray-900 mb-3">{profile.monthlyIncome > 0 ? Math.round((profile.totalDebt / (profile.monthlyIncome * 12)) * 100) : 0}%</div>
+          <div className="text-sm text-gray-500 mb-4">Monthly debt compared to yearly income.</div>
+          <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden">
+            <div className="h-full rounded-full" style={{ width: `${Math.min(100, profile.monthlyIncome > 0 ? (profile.totalDebt / (profile.monthlyIncome * 12)) * 100 : 0)}%`, background: profile.totalDebt / (profile.monthlyIncome * 12) > 0.43 ? '#EF4444' : '#22C55E' }} />
+          </div>
+          <p className="text-xs text-gray-400 mt-3">{profile.totalDebt / (profile.monthlyIncome * 12) > 0.43 ? 'Above recommended 43%' : 'Healthy ratio ✓'}</p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+          <h4 className="text-sm font-semibold text-gray-500 mb-4">Credit Utilization</h4>
+          <div className="text-3xl font-bold text-gray-900 mb-3">{profile.creditUtilization}%</div>
+          <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
+            <span className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-green-50 text-green-700">Low</span>
+            <span className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-amber-50 text-amber-700">Target</span>
+            <span className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-red-50 text-red-700">High</span>
+          </div>
+          <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden">
+            <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-amber-500" style={{ width: `${profile.creditUtilization}%` }} />
+          </div>
+          <p className="text-xs text-gray-400 mt-3">{profile.creditUtilization > 30 ? 'Try to reduce below 30%' : 'Great - under 30% ✓'}</p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <h4 className="text-sm font-semibold text-gray-500">Circle Goals</h4>
+              <p className="text-xs text-gray-400 mt-1">Average goals for your active circle.</p>
+            </div>
+            {activeCircle && <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">{activeCircle.name}</span>}
+          </div>
+
+          <div className="rounded-3xl bg-slate-50 p-4 border border-gray-100 mb-4">
+            <div className="flex items-center justify-between mb-3 text-xs text-gray-500 uppercase tracking-[0.2em]">Avg Utilisation Goal</div>
+            <div className="flex items-center justify-between mb-2"><span className="font-semibold text-gray-900">{avgCircleUtilization}%</span><span className="text-xs font-semibold" style={{ color: avgUtilColor }}>{avgUtilText}</span></div>
+            <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
+              <div className="h-full rounded-full" style={{ width: `${avgCircleUtilization}%`, background: avgUtilColor }} />
+            </div>
+          </div>
+
+          <div className="rounded-3xl bg-slate-50 p-4 border border-gray-100">
+            <div className="flex items-center justify-between mb-3 text-xs text-gray-500 uppercase tracking-[0.2em]">Avg Circle Score</div>
+            <div className="flex items-center justify-between mb-2"><span className="font-semibold text-gray-900">{avgCircleScore}</span><span className="text-xs font-semibold" style={{ color: avgScoreColor }}>{avgScoreText}</span></div>
+            <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
+              <div className="h-full rounded-full" style={{ width: `${Math.min(100, (avgCircleScore - 300) / 5.5)}%`, background: avgScoreColor }} />
+            </div>
+          </div>
+
+          {activeCircle && circleMembers.length > 1 && (
+            <div className="mt-5 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold text-gray-700">Nudge circle members</p>
+                <span className="text-xs text-gray-400">Remind them of goals</span>
+              </div>
+              <div className="space-y-3">
+                {circleMembers.filter(member => member.id !== currentUser.id).slice(0, 3).map(member => (
+                  <div key={member.id} className="flex items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-gray-100">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{member.fullName}</p>
+                      <p className="text-xs text-gray-500">{member.avatarColor}</p>
+                    </div>
+                    <button type="button" onClick={() => handleCircleNudge(member.id)} className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100 transition-colors"><Bell className="w-4 h-4" /> Nudge</button>
+                  </div>
+                ))}
+              </div>
+              {nudgeStatus && <p className="text-xs text-emerald-600 mt-3">{nudgeStatus}</p>}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -259,8 +462,8 @@ export default function Dashboard() {
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm col-span-1 lg:col-span-2">
-          <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2"><Zap className="w-5 h-5 text-amber-500" /> What-If Simulator</h3>
-          <p className="text-sm text-gray-500 mb-4">Predict score impact with custom amounts & detailed scenarios</p>
+          <h3 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2"><Zap className="w-5 h-5 text-amber-500" /> Credit Score Predictor</h3>
+          <p className="text-sm text-gray-500 mb-4">Explore how decisions can shift your credit score and get immediate guidance.</p>
           
           <div className="mb-4">
             <label htmlFor="actionSearch" className="block text-sm font-semibold text-gray-700 mb-2">Search scenarios</label>
@@ -329,9 +532,9 @@ export default function Dashboard() {
                   placeholder={currentActionConfig.customType === 'amount' ? '500' : '10'}
                   className="w-full px-4 py-3 border border-blue-300 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
-                {currentActionConfig.presetAmounts?.length && currentActionConfig.customType === 'amount' ? (
+                {currentActionPresetAmounts?.length && currentActionConfig?.customType === 'amount' ? (
                   <div className="space-y-2">
-                    {currentActionConfig.presetAmounts.map((amount) => (
+                    {currentActionPresetAmounts.map((amount) => (
                       <button
                         key={amount}
                         type="button"
@@ -342,9 +545,9 @@ export default function Dashboard() {
                       </button>
                     ))}
                   </div>
-                ) : currentActionConfig.presetPercentages?.length && currentActionConfig.customType === 'percentage' ? (
+                ) : currentActionPresetPercentages?.length && currentActionConfig?.customType === 'percentage' ? (
                   <div className="space-y-2">
-                    {currentActionConfig.presetPercentages.map((percent) => (
+                    {currentActionPresetPercentages.map((percent) => (
                       <button
                         key={percent}
                         type="button"
@@ -457,20 +660,6 @@ export default function Dashboard() {
             <div className="h-2 rounded-full transition-all" style={{ width: `${Math.min(100, profile.monthlyIncome > 0 ? (profile.totalDebt / (profile.monthlyIncome * 12)) * 100 : 0)}%`, background: profile.totalDebt / (profile.monthlyIncome * 12) > 0.43 ? '#EF4444' : '#22C55E' }} />
           </div>
           <p className="text-xs text-gray-400 mt-1">{profile.totalDebt / (profile.monthlyIncome * 12) > 0.43 ? 'Above recommended 43%' : 'Healthy ratio ✓'}</p>
-        </div>
-        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-          <h4 className="text-sm font-semibold text-gray-500 mb-2">Credit Utilization</h4>
-          <div className="text-2xl font-bold text-gray-900">{profile.creditUtilization}%</div>
-          <div className="w-full h-2 bg-gray-100 rounded-full mt-3">
-            <div className="h-2 rounded-full transition-all" style={{ width: `${profile.creditUtilization}%`, background: profile.creditUtilization > 30 ? '#F59E0B' : '#22C55E' }} />
-          </div>
-          <p className="text-xs text-gray-400 mt-1">{profile.creditUtilization > 30 ? 'Try to reduce below 30%' : 'Great - under 30% ✓'}</p>
-        </div>
-        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-          <h4 className="text-sm font-semibold text-gray-500 mb-2">Score Circles</h4>
-          <div className="text-2xl font-bold text-gray-900">{circles.length}</div>
-          <p className="text-sm text-gray-400 mt-1">Active circle(s)</p>
-          <p className="text-xs text-emerald-600 mt-2">{circles.length === 0 ? 'Join or create your first circle →' : 'View your circles →'}</p>
         </div>
       </div>
     </div>

@@ -1,0 +1,233 @@
+﻿@model ScoreCircle.ViewModels.CircleDashboardViewModel
+@{
+    ViewData["Title"] = Model.Circle.Name;
+
+    string TierBadge(ScoreCircle.Models.CreditTier t) => t switch
+    {
+        ScoreCircle.Models.CreditTier.Poor => "danger",
+        ScoreCircle.Models.CreditTier.Fair => "warning",
+        ScoreCircle.Models.CreditTier.Good => "success",
+        ScoreCircle.Models.CreditTier.Excellent => "info",
+        _ => "secondary"
+    };
+}
+
+<div class="container-fluid py-4">
+    <div class="row g-4">
+
+        <!-- LEFT: Sidebar — circles list -->
+        <div class="col-lg-2 col-md-3">
+            <h6 class="text-muted text-uppercase small fw-semibold mb-3">My Circles</h6>
+            @foreach (var c in Model.AllUserCircles)
+            {
+                <a asp-controller="Circle" asp-action="Index" asp-route-id="@c.Id"
+                   class="d-block p-2 rounded mb-1 text-decoration-none @(c.Id == Model.Circle.Id ? "bg-primary text-white" : "text-dark")">
+                    <span class="small fw-semibold">@c.Name</span>
+                </a>
+            }
+            <hr />
+            <a asp-controller="Dashboard" asp-action="Index" class="small text-muted">← My dashboard</a>
+        </div>
+
+        <!-- CENTRE: Main circle dashboard -->
+        <div class="col-lg-7 col-md-9">
+
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h4 class="fw-bold mb-0">@Model.Circle.Name</h4>
+                    <span class="text-muted small">
+                        @Model.Circle.Members.Count members · Invite code:
+                        <code class="fw-bold">@Model.Circle.InviteCode</code>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Goal progress -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-semibold mb-0">Circle goal</h6>
+                        <span class="badge bg-primary">@Model.GoalProgressPercent% there</span>
+                    </div>
+                    <p class="text-muted small mb-2">@Model.Circle.GoalDescription</p>
+                    <div class="progress" style="height:12px">
+                        <div class="progress-bar bg-success"
+                             role="progressbar"
+                             style="width:@Model.GoalProgressPercent%"
+                             aria-valuenow="@Model.GoalProgressPercent" aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+                    <small class="text-muted">Deadline: @Model.Circle.GoalDeadline.ToString("MMMM yyyy")</small>
+                </div>
+            </div>
+
+            <!-- Circle health breakdown -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h6 class="fw-semibold mb-3">Circle health</h6>
+                    <div class="row g-2 text-center">
+                        @foreach (ScoreCircle.Models.CreditTier tier in Enum.GetValues(typeof(ScoreCircle.Models.CreditTier)))
+                        {
+                            var count = Model.TierCounts.GetValueOrDefault(tier, 0);
+                            <div class="col-3">
+                                <div class="p-2 rounded bg-light">
+                                    <div class="fs-4 fw-bold text-@TierBadge(tier)">@count</div>
+                                    <div class="small text-muted">@tier</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Members -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h6 class="fw-semibold mb-3">Members</h6>
+                    <div class="list-group list-group-flush">
+                        @foreach (var m in Model.Members)
+                        {
+                            <div class="list-group-item px-0 d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center"
+                                          style="width:36px;height:36px;font-size:.85rem">
+                                        @m.DisplayName[0]
+                                    </span>
+                                    <div>
+                                        <span class="fw-semibold small">
+                                            @m.DisplayName
+                                            @if (m.IsCurrentUser)
+                                            {
+                                                <span class="text-muted">(you)</span>
+                                            }
+                                        </span>
+                                        @if (m.Direction != null)
+                                        {
+                                            <div class="text-muted" style="font-size:.75rem">@m.Direction</div>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    @if (m.SharedTier.HasValue)
+                                    {
+                                        <span class="badge bg-@TierBadge(m.SharedTier.Value)">@m.SharedTier</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Private</span>
+                                    }
+
+                                    @if (!m.IsCurrentUser)
+                                    {
+                                        <button class="btn btn-outline-secondary btn-sm"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#nudgeModal"
+                                                data-member-id="@m.MemberId"
+                                                data-member-name="@m.DisplayName">
+                                            Nudge
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nudge feed -->
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h6 class="fw-semibold mb-3">Circle nudges</h6>
+                    @if (!Model.RecentNudges.Any())
+                    {
+                        <p class="text-muted small">No nudges yet — be the first to encourage someone!</p>
+                    }
+                    else
+                    {
+                        @foreach (var n in Model.RecentNudges)
+                        {
+                            <div class="d-flex gap-2 mb-3">
+                                <span class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                                      style="width:32px;height:32px;font-size:.75rem">
+                                    ◎
+                                </span>
+                                <div>
+                                    <p class="mb-0 small">@n.Message</p>
+                                    <span class="text-muted" style="font-size:.7rem">@n.SentAt.ToString("d MMM, HH:mm")</span>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div><!-- /centre -->
+        <!-- RIGHT: My private advice panel -->
+        <div class="col-lg-3">
+            <div class="card shadow-sm border-0 border-start border-3 border-primary">
+                <div class="card-body">
+                    <h6 class="fw-semibold mb-1">Your private advice</h6>
+                    <p class="text-muted small mb-3">Only you can see this</p>
+
+                    <div class="text-center mb-3">
+                        <span class="fs-2 fw-bold text-@Model.PersonalTierColor">@Model.PersonalScore.Score</span>
+                        <span class="badge bg-@Model.PersonalTierColor ms-1">@Model.PersonalScore.Tier</span>
+                    </div>
+
+                    @foreach (var a in Model.PersonalAdvices.Take(3).OrderBy(x => x.Priority == "High" ? 0 : x.Priority == "Medium" ? 1 : 2))
+                    {
+                        var bc = a.Priority == "High" ? "danger" : a.Priority == "Medium" ? "warning" : "success";
+                        <div class="mb-3 p-2 rounded bg-light border-start border-@bc border-2">
+                            <p class="small fw-semibold mb-1">@a.Title</p>
+                            <p class="small text-muted mb-0">@a.Body</p>
+                        </div>
+                    }
+
+                    <a asp-controller="Dashboard" asp-action="Index" class="btn btn-sm btn-outline-primary w-100 mt-1">
+                        Full dashboard →
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /row -->
+</div>
+
+<!-- Nudge Modal -->
+<div class="modal fade" id="nudgeModal" tabindex="-1" aria-labelledby="nudgeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <form asp-controller="Circle" asp-action="Nudge" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="circleId" value="@Model.Circle.Id" />
+                <input type="hidden" name="recipientMemberId" id="recipientMemberId" />
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="nudgeModalLabel">Send a nudge</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-2">Encouraging <strong id="nudgeRecipientName"></strong></p>
+                    <textarea name="message" class="form-control" rows="3"
+                              placeholder="You've got this! Keep going..." maxlength="200" required></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary">Send nudge</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Populate nudge modal with recipient info
+        const nudgeModal = document.getElementById('nudgeModal');
+        nudgeModal.addEventListener('show.bs.modal', e => {
+            const btn = e.relatedTarget;
+            document.getElementById('recipientMemberId').value = btn.dataset.memberId;
+            document.getElementById('nudgeRecipientName').textContent = btn.dataset.memberName;
+        });
+    </script>
+}

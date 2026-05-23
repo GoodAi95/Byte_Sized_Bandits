@@ -1,23 +1,21 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ScoreCircle.Models;
+using Microsoft.EntityFrameworkCore;
+using ScoreCircle.Data;
 using ScoreCircle.Services;
 using ScoreCircle.ViewModels;
 
 namespace ScoreCircle.Controllers
 {
-        public class DashboardController : Controller
+    public class DashboardController : Controller
     {
-                private readonly AppDbContext _db;
+        private readonly AppDbContext _db;
         private readonly CreditScoreService _creditService;
         private readonly AdviceService _adviceService;
         private readonly CircleService _circleService;
 
-        public DashboardController(
-                        CreditScoreService creditService,
-            AdviceService adviceService,
-            CircleService circleService)
+        public DashboardController(CreditScoreService creditService, AdviceService adviceService, CircleService circleService)
         {
-                        _creditService = creditService;
+            _creditService = creditService;
             _adviceService = adviceService;
             _circleService = circleService;
         }
@@ -25,7 +23,6 @@ namespace ScoreCircle.Controllers
         public async Task<IActionResult> Index()
         {
             var user = await _db.Users.FirstAsync();
-
             var score = await _creditService.GetOrSeedAsync(user.Id);
             var advices = await _adviceService.GetOrGenerateAsync(score);
             var circles = await _circleService.GetUserCirclesAsync(user.Id);

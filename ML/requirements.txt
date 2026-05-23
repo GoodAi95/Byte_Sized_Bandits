@@ -1,0 +1,23 @@
+# Byte-Sized Bandits ML Microservice Dependencies
+# Install with: pip install -r requirements.txt
+
+# Web Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+
+# ML Libraries
+scikit-learn==1.4.0
+xgboost==2.0.3
+lightgbm==4.3.0
+shap==0.44.1
+
+# Data Processing
+pandas==2.2.0
+numpy==1.26.3
+
+# Model Serialization
+joblib==1.3.2
+
+# Utilities
+python-multipart==0.0.6

@@ -37,7 +37,7 @@ export default function RegisterPage() {
           <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #52B788, #95D5B2)' }}>
             <TrendingUp className="w-6 h-6 text-[#0B1D0F]" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Byte-Sized Bandits</h1>
+          <h1 className="text-2xl font-bold text-white">Sechaba Score</h1>
         </div>
 
         <div className="bg-white rounded-3xl shadow-2xl p-8 sm:p-10">

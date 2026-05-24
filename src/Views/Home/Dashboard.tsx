@@ -491,30 +491,35 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4 max-h-[340px] overflow-y-auto pr-2">
-            {visibleActions.map(action => (
-              <button
-                key={action.value}
-                onClick={() => {
-                  setSelectedAction(action.value);
-                  setSimResult(null);
-                  if (action.customType === 'amount') setCustomAmount('');
-                  if (action.customType === 'percentage') setCustomPercentage('');
-                }}
-                className={`text-left p-3 rounded-3xl border transition-all border-gray-200 bg-gray-50 hover:border-emerald-300 ${selectedAction === action.value ? 'bg-emerald-50 border-emerald-300 shadow-sm' : ''}`}>
-                <div className="flex items-start gap-3 mb-3">
-                  <span className="w-10 h-10 rounded-2xl bg-emerald-50 grid place-items-center text-emerald-600">
-                    <FontAwesomeIcon icon={action.icon ?? faCircleInfo} className="w-4 h-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="font-semibold text-gray-900 text-sm">{action.label}</div>
-                    {action.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{action.description}</p>}
+            {visibleActions.map(action => {
+              const isSelected = selectedAction === action.value;
+              return (
+                <button
+                  key={action.value}
+                  onClick={() => {
+                    setSelectedAction(action.value);
+                    setSimResult(null);
+                    if (action.customType === 'amount') setCustomAmount('');
+                    if (action.customType === 'percentage') setCustomPercentage('');
+                  }}
+                  aria-pressed={isSelected}
+                  className={`text-left p-3 rounded-3xl border transition-all ${isSelected ? 'bg-emerald-50 border-emerald-400 shadow-md ring-2 ring-emerald-500/20' : 'border-gray-200 bg-gray-50 hover:border-emerald-300'}`}>
+                  <div className="flex items-start gap-3 mb-3">
+                    <span className={`w-10 h-10 rounded-2xl grid place-items-center ${isSelected ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-50 text-emerald-600'}`}>
+                      <FontAwesomeIcon icon={action.icon ?? faCircleInfo} className="w-4 h-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-gray-900 text-sm">{action.label}</div>
+                      {action.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{action.description}</p>}
+                    </div>
                   </div>
-                </div>
-                <div className="text-xs text-gray-500">
-                  {action.hasCustom ? 'Custom input available' : 'One-click preview'}
-                </div>
-              </button>
-            ))}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-gray-500">{action.hasCustom ? 'Custom input available' : 'One-click preview'}</span>
+                    {isSelected && <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-emerald-600 text-white">Selected</span>}
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
           {needsCustomInput && currentActionConfig && (

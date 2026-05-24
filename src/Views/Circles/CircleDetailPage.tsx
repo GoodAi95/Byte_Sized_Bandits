@@ -4,6 +4,22 @@ import { predictCreditScore } from '../../Services/MLService';
 import { db, DbSets } from '../../Data/ApplicationDbContext';
 import type { FinancialProfile, CircleGoal, CirclePost } from '../../Models';
 import { ArrowLeft, MessageSquare, Target, Users, Send, Heart, Bell, Plus, X } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFaceSadTear, faFaceMeh, faFaceSmile, faFaceGrinStars } from '@fortawesome/free-solid-svg-icons';
+
+const moodOptions = [
+  { key: 'demotivated', label: 'Demotivated', icon: faFaceSadTear, color: 'text-rose-600' },
+  { key: 'stressed', label: 'Stressed', icon: faFaceMeh, color: 'text-amber-600' },
+  { key: 'steady', label: 'Steady', icon: faFaceSmile, color: 'text-emerald-600' },
+  { key: 'excited', label: 'Excited', icon: faFaceGrinStars, color: 'text-sky-600' },
+] as const;
+
+function getMood(score: number) {
+  if (score < 580) return moodOptions[0];
+  if (score < 670) return moodOptions[1];
+  if (score < 740) return moodOptions[2];
+  return moodOptions[3];
+}
 
 export default function CircleDetailPage() {
   const { selectedCircleId, circles, circlePosts, currentUser, navigate, getCircleMembers, addCirclePost, likePost, sendNudge, addCircleGoal, contributeToCircleGoal } = useApp();
@@ -25,8 +41,16 @@ export default function CircleDetailPage() {
   const members = getCircleMembers(circle.id);
   const posts = circlePosts.filter(p => p.circleId === circle.id).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const profiles = db.get<FinancialProfile[]>(DbSets.PROFILES, []);
-  const memberScores = members.map(m => { const profile = profiles.find(p => p.userId === m.id); if (!profile) return null; return predictCreditScore(profile).predictedScore; }).filter(Boolean) as number[];
+  const memberProfiles = members.map(m => profiles.find(p => p.userId === m.id)).filter(Boolean) as FinancialProfile[];
+  const memberScores = memberProfiles.map(profile => predictCreditScore(profile).predictedScore);
   const avgScore = memberScores.length > 0 ? Math.round(memberScores.reduce((a, b) => a + b, 0) / memberScores.length) : 0;
+  const avgUtilization = memberProfiles.length > 0 ? Math.round(memberProfiles.reduce((sum, profile) => sum + profile.creditUtilization, 0) / memberProfiles.length) : 0;
+  const avgMood = getMood(avgScore);
+  const groupSavingsTarget = circle.goals.reduce((sum, goal) => sum + goal.targetAmount, 0);
+  const scoreTarget = 700;
+  const utilizationTarget = 30;
+  const scoreTargetProgress = Math.min(100, Math.round((avgScore / scoreTarget) * 100));
+  const utilizationProgress = Math.min(100, Math.round((avgUtilization / utilizationTarget) * 100));
 
   const handlePost = (e: React.FormEvent) => { e.preventDefault(); if (!postContent.trim()) return; addCirclePost(circle.id, postContent, postType); setPostContent(''); };
   const handleAddGoal = (e: React.FormEvent) => { e.preventDefault(); if (!goalTitle || !goalTarget) return; addCircleGoal(circle.id, goalTitle, parseFloat(goalTarget), goalDeadline || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]); setGoalTitle(''); setGoalTarget(''); setGoalDeadline(''); setShowGoalForm(false); };
@@ -45,7 +69,7 @@ export default function CircleDetailPage() {
             <svg viewBox="0 0 80 80" className="w-full h-full -rotate-90"><circle cx="40" cy="40" r="34" fill="none" stroke="#F3F4F6" strokeWidth="6" /><circle cx="40" cy="40" r="34" fill="none" stroke={healthScore >= 70 ? '#22C55E' : healthScore >= 40 ? '#F59E0B' : '#EF4444'} strokeWidth="6" strokeDasharray={`${(healthScore / 100) * 213.6} 213.6`} strokeLinecap="round" /></svg>
             <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-700">{healthScore}%</span>
           </div>
-          <div className="flex-1"><h2 className="text-2xl font-bold text-gray-900">{circle.name}</h2><p className="text-gray-500 text-sm">{circle.description || 'Score Circle'}</p><div className="flex flex-wrap gap-4 mt-2"><span className="text-sm text-gray-600"><strong>{members.length}</strong> members</span>{avgScore > 0 && <span className="text-sm text-gray-600">Avg Score: <strong className="text-emerald-600">{avgScore}</strong></span>}<span className="text-sm text-gray-600"><strong>{circle.goals.length}</strong> goal(s)</span></div></div>
+          <div className="flex-1"><h2 className="text-2xl font-bold text-gray-900">{circle.name}</h2><p className="text-gray-500 text-sm">{circle.description || 'Score Circle'}</p><div className="flex flex-wrap gap-4 mt-2"><span className="text-sm text-gray-600"><strong>{members.length}</strong> members</span><span className="text-sm text-gray-600 flex items-center gap-2">Avg mood: <strong className="text-emerald-600">{avgMood.label}</strong><FontAwesomeIcon icon={avgMood.icon} className={`w-4 h-4 ${avgMood.color}`} /></span><span className="text-sm text-gray-600"><strong>{circle.goals.length}</strong> goal(s)</span></div></div>
           <div className="text-xs font-mono bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg">Code: {circle.inviteCode}</div>
         </div>
       </div>
@@ -76,6 +100,25 @@ export default function CircleDetailPage() {
 
       {tab === 'goals' && (
         <div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+              <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Group savings target</p>
+              <p className="text-lg font-bold text-gray-900 mt-2">R{groupSavingsTarget.toLocaleString('en-ZA')}</p>
+              <p className="text-xs text-gray-500 mt-1">{circle.goals.length} amount goal(s) tracked</p>
+            </div>
+            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+              <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Average score target</p>
+              <p className="text-lg font-bold text-gray-900 mt-2">{scoreTarget}</p>
+              <p className="text-xs text-gray-500 mt-1">Current average: {avgScore}</p>
+              <div className="mt-3 h-2 rounded-full bg-gray-100 overflow-hidden"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${scoreTargetProgress}%` }} /></div>
+            </div>
+            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+              <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Average utilisation target</p>
+              <p className="text-lg font-bold text-gray-900 mt-2">{utilizationTarget}%</p>
+              <p className="text-xs text-gray-500 mt-1">Current average: {avgUtilization}%</p>
+              <div className="mt-3 h-2 rounded-full bg-gray-100 overflow-hidden"><div className="h-full rounded-full bg-amber-500" style={{ width: `${utilizationProgress}%` }} /></div>
+            </div>
+          </div>
           <div className="flex justify-end mb-4"><button onClick={() => setShowGoalForm(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white" style={{ background: '#2D6A4F' }}><Plus className="w-4 h-4" /> Add Goal</button></div>
           {circle.goals.length === 0 ? (<div className="text-center py-12 text-gray-400"><Target className="w-10 h-10 mx-auto mb-2 opacity-30" /><p>No circle goals yet</p></div>) : (
             <div className="space-y-3">{circle.goals.map((goal: CircleGoal) => {
@@ -111,13 +154,14 @@ export default function CircleDetailPage() {
       {tab === 'members' && (
         <div className="space-y-3">{members.map(member => {
           const memberProfile = profiles.find(p => p.userId === member.id);
-          const memberScore = memberProfile ? predictCreditScore(memberProfile).predictedScore : null;
+          const memberScore = memberProfile ? predictCreditScore(memberProfile).predictedScore : 650;
+          const mood = getMood(memberScore);
           const isCurrentUser = member.id === currentUser.id;
           return (
             <div key={member.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style={{ backgroundColor: member.avatarColor }}>{member.fullName.charAt(0)}</div>
-                <div className="flex-1"><p className="text-sm font-semibold text-gray-900">{member.fullName} {isCurrentUser && <span className="text-xs text-emerald-500">(You)</span>}</p>{memberScore && (<p className="text-xs text-gray-500">Score: <span className="font-semibold text-emerald-600">{memberScore}</span></p>)}</div>
+                <div className="flex-1"><p className="text-sm font-semibold text-gray-900">{member.fullName} {isCurrentUser && <span className="text-xs text-emerald-500">(You)</span>}</p><div className="mt-1 inline-flex items-center gap-2 rounded-full bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700"><FontAwesomeIcon icon={mood.icon} className={`w-4 h-4 ${mood.color}`} /><span>{mood.label}</span></div></div>
                 {!isCurrentUser && (
                   <div className="flex items-center gap-2">
                     <input type="text" value={nudgeMsg[member.id] || ''} onChange={e => setNudgeMsg(prev => ({ ...prev, [member.id]: e.target.value }))} className="w-40 px-3 py-1.5 border rounded-lg text-xs hidden sm:block text-gray-900" placeholder="Send a nudge..." />

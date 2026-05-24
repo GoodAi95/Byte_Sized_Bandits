@@ -185,7 +185,7 @@ export default function OnboardingPage() {
         <div className="text-center mb-6">
           <div className="flex items-center gap-2 justify-center mb-2">
             <TrendingUp className="w-6 h-6 text-emerald-400" />
-            <span className="text-white font-bold text-lg">Byte-Sized Bandits</span>
+            <span className="text-white font-bold text-lg">Sechaba Score</span>
           </div>
           <p className="text-emerald-300 text-sm">Welcome, {currentUser?.fullName}! Let's set up your profile.</p>
         </div>

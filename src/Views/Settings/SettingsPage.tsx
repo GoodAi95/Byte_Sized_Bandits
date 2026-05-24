@@ -1,22 +1,36 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../../Controllers/AppController';
-import { Save } from 'lucide-react';
+import { Save, CheckCircle2 } from 'lucide-react';
 
 export default function SettingsPage() {
   const { profile, updateProfile, recordCreditScore, currentUser } = useApp();
-  const [saved, setSaved] = useState(false);
+  const [showToast, setShowToast] = useState(false);
   const [form, setForm] = useState({ currentCreditScore: 650, monthlyIncome: 25000, totalSavings: 50000, totalDebt: 30000, numberOfCreditCards: 2, numberOfLoans: 0, monthlyRent: 8000, gambling: 'No' as 'No' | 'Low' | 'High', hasInvestments: false, hasMortgage: false, missedPayments: 0, creditUtilization: 30, ageOfCreditHistory: 5, employmentStatus: 'Employed' as 'Employed' | 'Self-Employed' | 'Unemployed' | 'Retired' });
 
   useEffect(() => { if (profile) { setForm({ currentCreditScore: profile.currentCreditScore, monthlyIncome: profile.monthlyIncome, totalSavings: profile.totalSavings, totalDebt: profile.totalDebt, numberOfCreditCards: profile.numberOfCreditCards, numberOfLoans: profile.numberOfLoans, monthlyRent: profile.monthlyRent, gambling: profile.gambling, hasInvestments: profile.hasInvestments, hasMortgage: profile.hasMortgage, missedPayments: profile.missedPayments, creditUtilization: profile.creditUtilization, ageOfCreditHistory: profile.ageOfCreditHistory, employmentStatus: profile.employmentStatus }); } }, [profile]);
 
-  const handleSave = (e: React.FormEvent) => { e.preventDefault(); updateProfile(form); recordCreditScore(); setSaved(true); setTimeout(() => setSaved(false), 3000); };
+  useEffect(() => {
+    if (!showToast) return;
+    const timeout = window.setTimeout(() => setShowToast(false), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [showToast]);
+
+  const handleSave = (e: React.FormEvent) => { e.preventDefault(); updateProfile(form); recordCreditScore(); setShowToast(true); };
   const update = (key: string, value: unknown) => setForm(prev => ({ ...prev, [key]: value }));
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
       <div className="mb-6"><h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Settings & Profile</h1><p className="text-gray-500 mt-1">Update your financial information to improve predictions</p></div>
 
-      {saved && (<div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-sm font-semibold">Profile updated and credit score recalculated!</div>)}
+      {showToast && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-white px-4 py-3 shadow-xl">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Settings saved</p>
+            <p className="text-xs text-gray-500">Your profile has been updated and the score has been recalculated.</p>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm mb-6">
         <h3 className="text-lg font-bold text-gray-900 mb-4">Account Information</h3>

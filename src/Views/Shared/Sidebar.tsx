@@ -32,8 +32,8 @@ export default function Sidebar() {
             <TrendingUp className="w-5 h-5 text-[#0B1D0F]" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white">Byte-Sized Bandits</h1>
-            <p className="text-[10px] text-emerald-400 uppercase tracking-widest">Score Tracker</p>
+            <h1 className="text-lg font-bold text-white">Sechaba Score</h1>
+            <p className="text-[10px] text-emerald-400 uppercase tracking-widest">Credit Score Tracker</p>
           </div>
         </div>
       </div>

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useApp } from '../../Controllers/AppController';
 import { formatRandsShort } from '../../Models';
 import { Plus, Target, Trash2, X, ArrowUpCircle } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faBullseye } from '@fortawesome/free-solid-svg-icons';
 
 export default function SavingsPage() {
   const { getUserSavingPlans, addSavingPlan, deleteSavingPlan, contributeToPlan } = useApp();
@@ -48,7 +50,7 @@ export default function SavingsPage() {
             return (
               <div key={plan.id} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2"><div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-lg">🎯</div><div><h4 className="font-bold text-gray-900 text-sm">{plan.name}</h4><p className="text-xs text-gray-400">Due: {new Date(plan.deadline).toLocaleDateString('en-ZA')}</p></div></div>
+                  <div className="flex items-center gap-2"><div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600"><FontAwesomeIcon icon={faBullseye} className="w-5 h-5" /></div><div><h4 className="font-bold text-gray-900 text-sm">{plan.name}</h4><p className="text-xs text-gray-400">Due: {new Date(plan.deadline).toLocaleDateString('en-ZA')}</p></div></div>
                   <button onClick={() => deleteSavingPlan(plan.id)} className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
                 </div>
                 <div className="mb-3">

@@ -23,7 +23,7 @@ export default function CashBackPage() {
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-amber-400/20 rounded-full text-amber-300 text-sm font-semibold mb-4"><Gift className="w-4 h-4" /> Coming Soon</div>
           <h2 className="text-3xl font-bold text-white mb-3">Cash Back Rewards Integration</h2>
-          <p className="text-emerald-200 max-w-lg text-lg">We're building partnerships with major South African retailers to bring you automatic cash back rewards on your everyday purchases — tracked right here in Byte-Sized Bandits.</p>
+          <p className="text-emerald-200 max-w-lg text-lg">We're building partnerships with major South African retailers to bring you automatic cash back rewards on your everyday purchases — tracked right here in Sechaba Score.</p>
           <div className="flex flex-wrap gap-3 mt-6">
             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2"><CreditCard className="w-5 h-5 text-emerald-300" /><span className="text-white text-sm">Auto-tracked</span></div>
             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2"><Percent className="w-5 h-5 text-emerald-300" /><span className="text-white text-sm">Up to 5% back</span></div>

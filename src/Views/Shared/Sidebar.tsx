@@ -2,8 +2,10 @@ import { useApp } from '../../Controllers/AppController';
 import type { AppPage } from '../../Models';
 import {
   LayoutDashboard, CreditCard, DollarSign, PiggyBank, Users,
-  Shield, Gift, LogOut, TrendingUp, Bell, Menu, X, Settings
+  Shield, Gift, LogOut, Bell, Menu, X, Settings
 } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faMoneyBillTrendUp } from '@fortawesome/free-solid-svg-icons';
 import { useState } from 'react';
 
 const NAV_ITEMS: { page: AppPage; label: string; icon: typeof LayoutDashboard }[] = [
@@ -29,7 +31,7 @@ export default function Sidebar() {
       <div className="px-5 py-5 border-b border-emerald-800/50">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #52B788, #95D5B2)' }}>
-            <TrendingUp className="w-5 h-5 text-[#0B1D0F]" />
+            <FontAwesomeIcon icon={faMoneyBillTrendUp} className="w-5 h-5 text-[#0B1D0F]" />
           </div>
           <div>
             <h1 className="text-lg font-bold text-white">Sechaba Score</h1>

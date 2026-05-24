@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useApp } from '../../Controllers/AppController';
-import { TrendingUp, ChevronRight, ChevronLeft, CheckCircle } from 'lucide-react';
+import { ChevronRight, ChevronLeft, CheckCircle } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faMoneyBillTrendUp } from '@fortawesome/free-solid-svg-icons';
 
 const STEPS = ['Credit Score', 'Income & Debt', 'Credit Details', 'Lifestyle'];
 
@@ -184,7 +186,7 @@ export default function OnboardingPage() {
       <div className="w-full max-w-lg">
         <div className="text-center mb-6">
           <div className="flex items-center gap-2 justify-center mb-2">
-            <TrendingUp className="w-6 h-6 text-emerald-400" />
+            <FontAwesomeIcon icon={faMoneyBillTrendUp} className="w-6 h-6 text-emerald-400" />
             <span className="text-white font-bold text-lg">Sechaba Score</span>
           </div>
           <p className="text-emerald-300 text-sm">Welcome, {currentUser?.fullName}! Let's set up your profile.</p>

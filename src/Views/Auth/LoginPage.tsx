@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useApp } from '../../Controllers/AppController';
 import { Shield, TrendingUp, Users, Eye, EyeOff } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faMoneyBillTrendUp } from '@fortawesome/free-solid-svg-icons';
 
 export default function LoginPage() {
   const { login, navigate } = useApp();
@@ -29,7 +31,7 @@ export default function LoginPage() {
         <div className="max-w-md">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #52B788, #95D5B2)' }}>
-              <TrendingUp className="w-8 h-8 text-[#0B1D0F]" />
+              <FontAwesomeIcon icon={faMoneyBillTrendUp} className="w-8 h-8 text-[#0B1D0F]" />
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Sechaba Score</h1>
@@ -65,7 +67,7 @@ export default function LoginPage() {
           {/* Mobile Branding */}
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #52B788, #95D5B2)' }}>
-              <TrendingUp className="w-6 h-6 text-[#0B1D0F]" />
+              <FontAwesomeIcon icon={faMoneyBillTrendUp} className="w-6 h-6 text-[#0B1D0F]" />
             </div>
             <h1 className="text-2xl font-bold text-white">Sechaba Score</h1>
           </div>

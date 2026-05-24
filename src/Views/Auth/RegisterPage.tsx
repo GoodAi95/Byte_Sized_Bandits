@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useApp } from '../../Controllers/AppController';
-import { TrendingUp, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faMoneyBillTrendUp } from '@fortawesome/free-solid-svg-icons';
 
 export default function RegisterPage() {
   const { register, navigate } = useApp();
@@ -35,7 +37,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <div className="flex items-center gap-3 mb-8 justify-center">
           <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #52B788, #95D5B2)' }}>
-            <TrendingUp className="w-6 h-6 text-[#0B1D0F]" />
+            <FontAwesomeIcon icon={faMoneyBillTrendUp} className="w-6 h-6 text-[#0B1D0F]" />
           </div>
           <h1 className="text-2xl font-bold text-white">Sechaba Score</h1>
         </div>
